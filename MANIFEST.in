@@ -1,0 +1,11 @@
+include LICENSE
+include README
+include MANIFEST.in
+include setup.py
+include scripts/gerrymander-patchreviewstats
+include scripts/gerrymander-watch
+include gerrymander/*.py
+include autobuild.sh
+include gerrymander.spec
+include gerrymander.spec.in
+global-exclude *.pyc

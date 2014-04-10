@@ -1,0 +1,6 @@
+   Gerrymander
+   ===========
+
+The Gerrymander package provides a set of Python2 / Python3 compatible
+modules for interacting with Gerrit, along with a set of command line
+programs for various useful operations.

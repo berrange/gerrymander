@@ -1,0 +1,244 @@
+#
+# Copyright (C) 2014 Red Hat, Inc
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+class ModelBase(object):
+    pass
+
+class ModelUser(ModelBase):
+    def __init__(self, name, email=None, username=None):
+        self.name = name
+        self.email = email
+        self.username = username
+
+    @staticmethod
+    def from_json(data):
+        return ModelUser(data.get("name", None),
+                         data.get("email", None),
+                         data.get("username", None))
+
+
+class ModelFile(ModelBase):
+    ACTION_MODIFIED = "MODIFIED"
+    ACTION_ADDED = "ADDED"
+    ACTION_DELETED = "DELETED"
+    ACTION_RENAMED = "RENAMED"
+
+    def __init__(self, path, action):
+        self.path = path
+        self.action = action
+
+    @staticmethod
+    def from_json(data):
+        return ModelFile(data.get("file", None),
+                         data.get("type", None))
+
+
+class ModelApproval(ModelBase):
+    ACTION_VERIFIED = "VRIF"
+    ACTION_REVIEWED = "CRVW"
+    ACTION_APPROVED = "APRV"
+    ACTION_SUBMITTED = "SUBM"
+
+    def __init__(self, action, value, grantedOn=None, user=None):
+        self.action = action
+        self.value = value
+        self.grantedOn = grantedOn
+        self.user = user
+
+    @staticmethod
+    def from_json(data):
+        user = None
+        if data.get("by", None):
+            user = ModelUser.from_json(data["by"])
+        return ModelApproval(data.get("type", None),
+                             data.get("value", None),
+                             data.get("grantedOn", None),
+                             user)
+
+
+class ModelPatch(ModelBase):
+
+    def __init__(self, number, revision, ref, uploader, createdOn, approvals=[], files=[], comments=[]):
+        self.number = number
+        self.revision = revision
+        self.ref = ref
+        self.uploader = uploader
+        self.createdOn = createdOn
+        self.approvals = approvals
+        self.files = files
+        self.comments = comments
+
+    @staticmethod
+    def from_json(data):
+        files = []
+        for f in data.get("files", []):
+            files.append(ModelFile.from_json(f))
+
+        approvals = []
+        for f in data.get("approvals", []):
+            approvals.append(ModelApproval.from_json(f))
+
+        user = None
+        if "uploader" in data:
+            user = ModelUser.from_json(data["uploader"]),
+
+        return ModelPatch(int(data.get("number", 0)),
+                          data.get("revision"),
+                          data.get("ref"),
+                          user,
+                          data.get("createdOn"),
+                          approvals,
+                          files)
+
+
+class ModelChange(ModelBase):
+
+    def __init__(self, project, branch, topic, id, number, subject, owner, url, createdOn, lastUpdated, status, patches = []):
+        self.project = project
+        self.branch = branch
+        self.topic = topic
+        self.id = id
+        self.number = number
+        self.subject = subject
+        self.owner = owner
+        self.url = url
+        self.createdOn = createdOn
+        self.lastUpdated = lastUpdated
+        self.status = status
+        self.patches = patches
+
+    def get_current_patch(self):
+        if len(self.patches) == 0:
+            return None
+        return self.patches[len(self.patches) - 1]
+
+    @staticmethod
+    def from_json(data):
+        patches = []
+        for p in data.get("patchSets", []):
+            patches.append(ModelPatch.from_json(p))
+
+        user = None
+        if "owner" in data:
+            user = ModelUser.from_json(data["owner"])
+
+        return ModelChange(data.get("project", None),
+                           data.get("branch", None),
+                           data.get("topic", None),
+                           data.get("id", None),
+                           data.get("number", None),
+                           data.get("subject", None),
+                           user,
+                           data.get("url", None),
+                           data.get("createdOn", None),
+                           data.get("lastUpdated", None),
+                           data.get("status", None),
+                           patches)
+
+
+class ModelEvent(ModelBase):
+
+    def __init__(self, change, patch, user):
+        self.change = change
+        self.patch = patch
+        self.user = user
+
+    @staticmethod
+    def from_json(data):
+        if data["type"] == "comment-added":
+            return ModelEventCommentAdd.from_json(data)
+        elif data["type"] == "patchset-created":
+            return ModelEventPatchCreate.from_json(data)
+        elif data["type"] == "change-merged":
+            return ModelEventChangeMerge.from_json(data)
+        elif data["type"] == "change-abandoned":
+            return ModelEventChangeAbandon.from_json(data)
+        elif data["type"] == "change-restored":
+            return ModelEventChangeRestore.from_json(data)
+        elif data["type"] == "ref-updated":
+            pass
+        else:
+            raise Exception("Unknown event '%s'" % data["type"])
+
+
+class ModelEventCommentAdd(ModelEvent):
+
+    def __init__(self, change, patch, user, comment, approvals):
+        ModelEvent.__init__(self, change, patch, user)
+        self.comment = comment
+        self.approvals = approvals
+
+    @staticmethod
+    def from_json(data):
+        change = ModelChange.from_json(data["change"])
+        patch = ModelPatch.from_json(data["patchSet"])
+        user = ModelUser.from_json(data["author"])
+        comment = data["comment"]
+        approvals = []
+        for f in data.get("approvals", []):
+            approvals.append(ModelApproval.from_json(f))
+        return ModelEventCommentAdd(change, patch, user, comment, approvals)
+
+
+class ModelEventPatchCreate(ModelEvent):
+
+    def __init__(self, change, patch, user):
+        ModelEvent.__init__(self, change, patch, user)
+
+    @staticmethod
+    def from_json(data):
+        change = ModelChange.from_json(data["change"])
+        patch = ModelPatch.from_json(data["patchSet"])
+        user = ModelUser.from_json(data["uploader"])
+        return ModelEventPatchCreate(change, patch, user)
+
+
+class ModelEventChangeMerge(ModelEvent):
+
+    def __init__(self, change, patch, user):
+        ModelEvent.__init__(self, change, patch, user)
+
+    @staticmethod
+    def from_json(data):
+        change = ModelChange.from_json(data["change"])
+        patch = ModelPatch.from_json(data["patchSet"])
+        user = ModelUser.from_json(data["submitter"])
+        return ModelEventChangeMerge(change, patch, user)
+
+
+class ModelEventChangeAbandon(ModelEvent):
+
+    def __init__(self, change, patch, user):
+        ModelEvent.__init__(self, change, patch, user)
+
+    @staticmethod
+    def from_json(data):
+        change = ModelChange.from_json(data["change"])
+        patch = ModelPatch.from_json(data["patchSet"])
+        user = ModelUser.from_json(data["abandoner"])
+        return ModelEventChangeAbandon(change, patch, user)
+
+
+class ModelEventChangeRestore(ModelEvent):
+
+    def __init__(self, change, patch, user):
+        ModelEvent.__init__(self, change, patch, user)
+
+    @staticmethod
+    def from_json(data):
+        change = ModelChange.from_json(data["change"])
+        patch = ModelPatch.from_json(data["patchSet"])
+        user = ModelUser.from_json(data["restorer"])
+        return ModelEventChangeRestore(change, patch, user)
