@@ -15,10 +15,13 @@
 
 import logging
 import os
+import os.path
 import subprocess
 import sys
 import json
 import hashlib
+import time
+import fcntl
 
 LOG = logging.getLogger(__name__)
 
@@ -73,17 +76,63 @@ class ClientLive(object):
         return self._process(sp, cb)
 
 
+class ClientCachingLock(object):
+    def __init__(self, lockfile):
+        self.lockfile = lockfile
+
+    def __enter__(self):
+        self.lockfh = open(self.lockfile, "w")
+        fcntl.lockf(self.lockfh, fcntl.LOCK_EX)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        try:
+            fcntl.lockf(self.lockfh, fcntl.LOCK_UN)
+            self.lockfh.close()
+            self.lockfh = None
+        except:
+            LOG.exception("could not release lock on %s" % self.lockfile)
+
+
 class ClientCaching(ClientLive):
 
     def __init__(self, hostname="review", port=None, username=None, keyfile=None,
                  cachedir="cache", cachelifetime=86400):
         ClientLive.__init__(self, hostname, port, username, keyfile)
         self.cachedir = cachedir
+        self.cachelifetime = cachelifetime
+        self.lastpurge = None
 
         if not os.path.exists(self.cachedir):
             os.makedirs(self.cachedir)
 
+    def _purge_cache_locked(self):
+        now = time.time()
+        if self.lastpurge is not None and (now - self.lastpurge) < 60 * 60:
+            return
+        self.lastpurge = now
+
+        then = now - self.cachelifetime
+        LOG.debug("Looking for files in %s older than %d" % (self.cachedir, then))
+        for file in os.listdir(self.cachedir):
+            if file == "lock":
+                continue
+            filepath = os.path.join(self.cachedir, file)
+            mtime = os.path.getmtime(filepath)
+            LOG.debug("File %s has time %d" % (filepath, mtime))
+            if mtime < then:
+                LOG.info("Purging outdated cache %s" % filepath)
+                os.unlink(file)
+
+    def _purge_cache(self):
+        # XXX we really need to protect individual files
+        # against deletion while they're being read
+        lock = ClientCachingLock(os.path.join(self.cachedir, "lock"))
+        LOG.debug("acquiring lock for cache")
+        with lock as lock:
+            self._purge_cache_locked()
+
     def run(self, cmdargv, cb):
+        self._purge_cache()
         argv = self._build_argv(cmdargv)
         args = " ".join(argv)
         m = hashlib.sha256()
