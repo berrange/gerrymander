@@ -87,6 +87,31 @@ class CommandConfig(object):
             return os.path.expanduser("~/.gerrymander.d/cache")
         return self.config.get("cache", "directory")
 
+    def get_organization_groups(self):
+        if not self.config.has_option("organization", "groups"):
+            return []
+        return self.config.get("organization", "groups")
+
+    def get_organization_teams(self):
+        if not self.config.has_option("organization", "teams"):
+            return []
+        return self.config.get("organization", "teams")
+
+    def get_group_projects(self, groupname):
+        section = "group:" + groupname
+        if not self.config.has_option(section, "projects"):
+            return []
+        value = self.config.get(section, "projects")
+        return list(map(lambda x: x.strip(), value.split(",")))
+
+    def get_group_team_members(self, groupname, teamname):
+        section = "group:" + groupname
+        key = "team:" + teamname
+        if not self.config.has_option(section, key):
+            return []
+        value = self.config.get(section, key)
+        return list(map(lambda x: x.strip(), value.split(",")))
+
 
 class Command(object):
 
@@ -253,6 +278,10 @@ class CommandPatchReviewStats(CommandReport):
                                       options.project)
 
     def run(self, config, client, options, args):
+        projects = options.project
+        for group in options.group:
+            projects.extend(config.get_group_projects(group))
+
         if len(options.project) == 0:
             sys.stderr.write("At least one project is required\n")
             return 255
