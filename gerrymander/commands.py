@@ -324,12 +324,14 @@ class CommandPatchReviewStats(CommandReport):
 
     def run(self, config, client, options, args):
         projects = options.project
-        groups = options.group
-        if options.all_groups:
-            groups = config.get_organization_groups()
+        if len(projects) == 0:
+            if options.all_groups:
+                groups = config.get_organization_groups()
+            else:
+                groups = options.group
 
-        for group in groups:
-            projects.extend(config.get_group_projects(group))
+            for group in groups:
+                projects.extend(config.get_group_projects(group))
 
         if len(options.project) == 0:
             sys.stderr.write("At least one project is required\n")
@@ -374,11 +376,13 @@ class CommandChanges(CommandReport):
 
     def run(self, config, client, options, args):
         projects = options.project
-        groups = options.group
-        if options.all_groups:
-            groups = config.get_organization_groups()
+        if len(projects) == 0:
+            if options.all_groups:
+                groups = config.get_organization_groups()
+            else:
+                groups = options.group
 
-        for group in groups:
-            projects.extend(config.get_group_projects(group))
+            for group in groups:
+                projects.extend(config.get_group_projects(group))
 
         return CommandReport.run(self, config, client, options, args)
