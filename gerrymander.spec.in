@@ -86,6 +86,7 @@ rm -f %{buildroot}%{python3_sitelib}/*egg-info
 %defattr(-,root,root)
 %{_bindir}/gerrymander-watch
 %{_bindir}/gerrymander-patchreviewstats
+%{_bindir}/gerrymander-changes
 
 %if %{with_python2}
 %files -n python-gerrymander

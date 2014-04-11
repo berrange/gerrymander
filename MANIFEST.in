@@ -4,6 +4,7 @@ include MANIFEST.in
 include setup.py
 include scripts/gerrymander-patchreviewstats
 include scripts/gerrymander-watch
+include scripts/gerrymander-changes
 include gerrymander/*.py
 include autobuild.sh
 include gerrymander.spec

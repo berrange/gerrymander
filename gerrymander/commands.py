@@ -17,6 +17,7 @@ from gerrymander.client import ClientLive
 from gerrymander.client import ClientCaching
 from gerrymander.operations import OperationWatch
 from gerrymander.reports import ReportPatchReviewStats
+from gerrymander.reports import ReportChanges
 
 import os
 import logging
@@ -301,4 +302,51 @@ class CommandPatchReviewStats(CommandReport):
         if len(options.project) == 0:
             sys.stderr.write("At least one project is required\n")
             return 255
+        return CommandReport.run(self, config, client, options, args)
+
+
+class CommandChanges(CommandReport):
+
+    def __init__(self):
+        CommandReport.__init__(self, "changes")
+
+    def add_options(self):
+        CommandReport.add_options(self)
+
+        self.add_option("--all-groups", action="store_true",
+                        help="Report on changes from all project groups")
+
+        self.add_option("--status", action="append", default=[],
+                        help="Filter based on status")
+        self.add_option("--reviewer", action="append", default=[],
+                        help="Filter based on reviewer")
+        self.add_option("--branch", action="append", default=[],
+                        help="Filter based on branch")
+        self.add_option("--message", action="append", default=[],
+                        help="Filter based on message")
+        self.add_option("--owner", action="append", default=[],
+                        help="Filter based on owner")
+        self.add_option("--approval", action="append", default=[],
+                        help="Filter based on approval")
+
+    def get_report(self, config, client, options, args):
+        return ReportChanges(client,
+                             projects=options.project,
+                             status=options.status,
+                             reviewers=options.reviewer,
+                             branches=options.branch,
+                             messages=options.message,
+                             owners=options.owner,
+                             approvals=options.approval,
+                             files=args)
+
+    def run(self, config, client, options, args):
+        projects = options.project
+        groups = options.group
+        if options.all_groups:
+            groups = config.get_organization_groups()
+
+        for group in groups:
+            projects.extend(config.get_group_projects(group))
+
         return CommandReport.run(self, config, client, options, args)

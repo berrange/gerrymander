@@ -116,6 +116,7 @@ setup(
     scripts=([
         "scripts/gerrymander-watch",
         "scripts/gerrymander-patchreviewstats",
+        "scripts/gerrymander-changes",
         ]),
     packages=["gerrymander"],
     cmdclass = {

@@ -15,9 +15,13 @@
 
 
 import prettytable
+import logging
 
 from gerrymander.operations import OperationQuery
 from gerrymander.model import ModelApproval
+from gerrymander.format import format_date
+
+LOG = logging.getLogger(__name__)
 
 class ReportColumn(object):
 
@@ -194,3 +198,117 @@ class ReportPatchReviewStats(Report):
         reviewers = [(k, v) for k, v in reviewers.items()]
         return reviewers
 
+
+class ReportChanges(Report):
+
+    def approvals_mapfunc(col, row):
+        patch = row.get_current_patch()
+        if patch is None:
+            LOG.error("No patch")
+            return ""
+        vals = {}
+        for approval in patch.approvals:
+            got_type = approval.action[0:1].lower()
+            if got_type not in vals:
+                vals[got_type] = []
+            vals[got_type].append(approval.value)
+        keys = vals.keys()
+        keys.sort(reverse=True)
+        return " ".join(map(lambda val: "%s=%s" % (val,
+                                                   ",".join(vals[val])), keys))
+
+    def user_mapfunc(k, row):
+        if not row.owner or not row.owner.username:
+            return "<unknown>"
+        return row.owner.username
+
+    def date_mapfunc(k, row):
+        if k == "lastUpdated":
+            return format_date(row.lastUpdated)
+        else:
+            return format_date(row.createdOn)
+
+    def date_sortfunc(k, row):
+        if k == "lastUpdated":
+            return row.lastUpdated
+        else:
+            return row.createdOn
+
+    COLUMNS = [
+        ReportColumn("status", "Status", lambda col, row: row.status),
+        ReportColumn("topic", "Topic", lambda col, row: row.topic, visible=False),
+        ReportColumn("url", "URL", lambda col, row: row.url),
+        ReportColumn("owner", "Owner", user_mapfunc),
+        ReportColumn("project", "Project", lambda col, row: row.project, visible=False),
+        ReportColumn("branch", "Branch", lambda col, row: row.branch, visible=False),
+        ReportColumn("subject", "Subject", lambda col, row: row.subject, truncate=30),
+        ReportColumn("createdOn", "Created", date_mapfunc, date_sortfunc),
+        ReportColumn("lastUpdated", "Updated", date_mapfunc, date_sortfunc),
+        ReportColumn("approvals", "Approvals", approvals_mapfunc),
+    ]
+
+    def __init__(self, client, projects=[], owners=[],
+                 status=[], messages=[], branches=[], reviewers=[],
+                 approvals=[], files=[]):
+        Report.__init__(self, client, ReportChanges.COLUMNS,
+                        sort="createdOn", reverse=False)
+        self.projects = projects
+        self.owners = owners
+        self.status = status
+        self.messages = messages
+        self.branches = branches
+        self.reviewers = reviewers
+        self.approvals = approvals
+        self.files = files
+
+    def generate(self):
+        needFiles = False
+        if len(self.files) > 0:
+            needFiles = True
+
+        query = OperationQuery(self.client,
+                               {
+                                   "project": self.projects,
+                                   "owner": self.owners,
+                                   "message": self.messages,
+                                   "branches": self.branches,
+                                   "status": self.status,
+                               },
+                               patches=OperationQuery.PATCHES_CURRENT,
+                               approvals=True,
+                               files=needFiles)
+
+        changes = []
+
+        def match_files(change):
+            if len(self.files) == 0:
+                return True
+            for filere in self.files:
+                for patch in change.patches:
+                    for file in patch.files:
+                        if re.search(filere, file):
+                            return True
+            return False
+
+        def match_reviewers(change):
+            if len(self.reviewers) == 0:
+                return True
+
+            for user in self.reviewers:
+                for patch in change.patches:
+                    for approval in patch.approvals:
+                        if approval.user is None:
+                            continue
+                        if (approval.user.name == user or
+                            approval.user.username == user):
+                            return True
+            return False
+
+        def querycb(change):
+            if (match_files(change) and
+                match_reviewers(change)):
+                changes.append(change)
+
+        query.run(querycb, limit=20000)
+
+        return changes
