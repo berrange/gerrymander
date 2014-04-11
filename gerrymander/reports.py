@@ -55,8 +55,7 @@ class Report(object):
     def __init__(self, client, columns, sort=None, reverse=False):
         self.client = client
         self.columns = columns
-        self.sort = sort
-        self.reverse = reverse
+        self.set_sort_column(sort, reverse)
 
     def get_columns(self):
         return self.headers
@@ -74,6 +73,12 @@ class Report(object):
         return True
 
     def set_sort_column(self, key, reverse=False):
+        got = False
+        for col in self.columns:
+            if col.key == key:
+                got = True
+        if not got:
+            raise Exception("Unknown sort column %s" % key)
         self.sort = key
         self.reverse = reverse
 
