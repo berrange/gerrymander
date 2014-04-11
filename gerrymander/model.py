@@ -54,7 +54,10 @@ class ModelApproval(ModelBase):
     def __init__(self, action, value, grantedOn=None, user=None):
         self.action = action
         self.value = value
-        self.grantedOn = grantedOn
+        if grantedOn is not None:
+            self.grantedOn = int(grantedOn)
+        else:
+            self.grantedOn = None
         self.user = user
 
     @staticmethod
@@ -114,8 +117,14 @@ class ModelChange(ModelBase):
         self.subject = subject
         self.owner = owner
         self.url = url
-        self.createdOn = createdOn
-        self.lastUpdated = lastUpdated
+        if createdOn is not None:
+            self.createdOn = int(createdOn)
+        else:
+            self.createdOn = None
+        if lastUpdated is not None:
+            self.lastUpdated = int(lastUpdated)
+        else:
+            self.lastUpdated = None
         self.status = status
         self.patches = patches
 
