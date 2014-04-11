@@ -124,6 +124,15 @@ class Report(object):
 
 class ReportPatchReviewStats(Report):
 
+    def user_mapfunc(rep, col, row):
+        user = row[0]
+
+        for team in rep.teams.keys():
+            if user in rep.teams[team]:
+                return user + " " + team
+
+        return user
+
     def review_mapfunc(rep, col, row):
         return row[1]['total']
 
@@ -137,7 +146,7 @@ class ReportPatchReviewStats(Report):
         return row[1]['votes'][col]
 
     COLUMNS = [
-        ReportColumn("user", "User",  lambda rep, col, row: row[0], align=ReportColumn.ALIGN_LEFT),
+        ReportColumn("user", "User", user_mapfunc, align=ReportColumn.ALIGN_LEFT),
         ReportColumn("reviews", "Reviews", review_mapfunc, align=ReportColumn.ALIGN_RIGHT),
         ReportColumn("flag-m2", "-2", vote_mapfunc, align=ReportColumn.ALIGN_RIGHT),
         ReportColumn("flag-m1", "-1", vote_mapfunc, align=ReportColumn.ALIGN_RIGHT),
@@ -146,10 +155,11 @@ class ReportPatchReviewStats(Report):
         ReportColumn("ratio", "+/-", ratio_mapfunc, format="%0.0lf%%", align=ReportColumn.ALIGN_RIGHT),
     ]
 
-    def __init__(self, client, projects):
+    def __init__(self, client, projects, teams={}):
         Report.__init__(self, client, ReportPatchReviewStats.COLUMNS,
                         sort="reviews", reverse=True)
         self.projects = projects
+        self.teams = teams
 
     def generate(self):
         # We could query all projects at once, but if we do them

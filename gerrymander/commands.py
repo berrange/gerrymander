@@ -311,6 +311,7 @@ class CommandPatchReviewStats(CommandReport):
 
     def __init__(self):
         CommandReport.__init__(self, "patchreviewstats")
+        self.teams = {}
 
     def add_options(self):
         CommandReport.add_options(self)
@@ -320,7 +321,8 @@ class CommandPatchReviewStats(CommandReport):
 
     def get_report(self, config, client, options, args):
         return ReportPatchReviewStats(client,
-                                      options.project)
+                                      options.project,
+                                      self.teams)
 
     def run(self, config, client, options, args):
         projects = options.project
@@ -330,8 +332,22 @@ class CommandPatchReviewStats(CommandReport):
             else:
                 groups = options.group
 
+            char = '*'
+            teamchars = {}
+            self.teams = {}
+            for team in config.get_organization_teams():
+                teamchars[team] = char
+                self.teams[char] = []
+                char = char + "*"
+
             for group in groups:
                 projects.extend(config.get_group_projects(group))
+                teams = {}
+                for team in config.get_organization_teams():
+                    users = config.get_group_team_members(group, team)
+                    print ("User %s", users)
+                    self.teams[teamchars[team]].extend(users)
+                    print ("%s=%s %s " % (group, team, self.teams[teamchars[team]]))
 
         if len(options.project) == 0:
             sys.stderr.write("At least one project is required\n")
