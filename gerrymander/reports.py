@@ -62,7 +62,7 @@ class Report(object):
         self.set_sort_column(sort, reverse)
 
     def get_columns(self):
-        return self.headers
+        return self.columns
 
     def get_column(self, key):
         for col in self.columns:
@@ -271,7 +271,7 @@ class ReportChanges(Report):
                                    "project": self.projects,
                                    "owner": self.owners,
                                    "message": self.messages,
-                                   "branches": self.branches,
+                                   "branch": self.branches,
                                    "status": self.status,
                                },
                                patches=OperationQuery.PATCHES_CURRENT,
