@@ -69,6 +69,8 @@ class OperationQuery(OperationBase):
         terms = list(self.terms.keys())
         terms.sort()
         for term in terms:
+            if len(self.terms[term]) == 0:
+                continue
             subclauses = []
             for value in self.terms[term]:
                 subclauses.append("%s:%s" % (term, value))
