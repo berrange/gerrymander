@@ -39,19 +39,19 @@ class ReportColumn(object):
         self.align = align
         self.visible = visible
 
-    def get_value(self, row):
-        val = self.mapfunc(self.key, row)
+    def get_value(self, report, row):
+        val = self.mapfunc(report, self.key, row)
         if self.truncate and len(val) > self.truncate:
             val = val[0:self.truncate] + "..."
         elif self.format is not None:
             val = self.format % val
         return val
 
-    def get_sort_value(self, row):
+    def get_sort_value(self, report, row):
         if self.sortfunc:
-            return self.sortfunc(self.key, row)
+            return self.sortfunc(report, self.key, row)
         else:
-            return self.mapfunc(self.key, row)
+            return self.mapfunc(report, self.key, row)
 
 
 class Report(object):
@@ -106,7 +106,8 @@ class Report(object):
         items = self.generate()
 
         if sortcol is not None:
-            items.sort(key = lambda item: sortcol.get_sort_value(item), reverse=self.reverse)
+            items.sort(key = lambda item: sortcol.get_sort_value(self, item),
+                       reverse=self.reverse)
 
         if limit is not None:
             items = items[0:limit]
@@ -115,7 +116,7 @@ class Report(object):
             row = []
             for col in self.columns:
                 if col.visible:
-                    row.append(col.get_value(item))
+                    row.append(col.get_value(self, item))
             table.add_row(row)
 
         return table
@@ -123,20 +124,20 @@ class Report(object):
 
 class ReportPatchReviewStats(Report):
 
-    def review_mapfunc(col, row):
+    def review_mapfunc(rep, col, row):
         return row[1]['total']
 
-    def ratio_mapfunc(col, row):
+    def ratio_mapfunc(rep, col, row):
         plus = float(row[1]['votes']['flag-p2'] + row[1]['votes']['flag-p1'])
         minus = float(row[1]['votes']['flag-m2'] + row[1]['votes']['flag-m1'])
         ratio = (plus / (plus + minus)) * 100
         return ratio
 
-    def vote_mapfunc(col, row):
+    def vote_mapfunc(rep, col, row):
         return row[1]['votes'][col]
 
     COLUMNS = [
-        ReportColumn("user", "User",  lambda col, row: row[0], align=ReportColumn.ALIGN_LEFT),
+        ReportColumn("user", "User",  lambda rep, col, row: row[0], align=ReportColumn.ALIGN_LEFT),
         ReportColumn("reviews", "Reviews", review_mapfunc, align=ReportColumn.ALIGN_RIGHT),
         ReportColumn("flag-m2", "-2", vote_mapfunc, align=ReportColumn.ALIGN_RIGHT),
         ReportColumn("flag-m1", "-1", vote_mapfunc, align=ReportColumn.ALIGN_RIGHT),
@@ -201,7 +202,7 @@ class ReportPatchReviewStats(Report):
 
 class ReportChanges(Report):
 
-    def approvals_mapfunc(col, row):
+    def approvals_mapfunc(rep, col, row):
         patch = row.get_current_patch()
         if patch is None:
             LOG.error("No patch")
@@ -217,19 +218,19 @@ class ReportChanges(Report):
         return " ".join(map(lambda val: "%s=%s" % (val,
                                                    ",".join(vals[val])), keys))
 
-    def user_mapfunc(k, row):
+    def user_mapfunc(rep, col, row):
         if not row.owner or not row.owner.username:
             return "<unknown>"
         return row.owner.username
 
-    def date_mapfunc(k, row):
-        if k == "lastUpdated":
+    def date_mapfunc(rep, col, row):
+        if col == "lastUpdated":
             return format_date(row.lastUpdated)
         else:
             return format_date(row.createdOn)
 
-    def date_sortfunc(k, row):
-        if k == "lastUpdated":
+    def date_sortfunc(rep, col, row):
+        if col == "lastUpdated":
             return row.lastUpdated
         else:
             return row.createdOn
