@@ -170,7 +170,7 @@ class ReportPatchReviewStats(Report):
                     for approval in patch.approvals:
                         reviews.append(approval)
 
-            query.run(querycb, limit=20000)
+            query.run(querycb)
 
         reviewers = {}
         for review in reviews:
@@ -309,6 +309,6 @@ class ReportChanges(Report):
                 match_reviewers(change)):
                 changes.append(change)
 
-        query.run(querycb, limit=20000)
+        query.run(querycb)
 
         return changes

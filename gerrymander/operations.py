@@ -78,7 +78,7 @@ class OperationQuery(OperationBase):
         args.append(" AND ".join(map(lambda a: "( %s )" % a, clauses)))
         return args
 
-    def run(self, cb, limit=500):
+    def run(self, cb, limit=None):
         class tracker(object):
             def __init__(self):
                 self.gotany = True
@@ -96,14 +96,21 @@ class OperationQuery(OperationBase):
             c.count = c.count + 1
             cb(change)
 
-        while c.count < limit and c.gotany:
-            want = limit - c.count
-            if want > 500:
-                want = 500
-            c.gotany = False
-            ret = self.client.run(self.get_args(want, c.sortkey), mycb)
-            if ret != 0:
-                return ret
+        if limit is None:
+            while c.gotany:
+                c.gotany = False
+                ret = self.client.run(self.get_args(500, c.sortkey), mycb)
+                if ret != 0:
+                    return ret
+        else:
+            while c.count < limit and c.gotany:
+                want = limit - c.count
+                if want > 500:
+                    want = 500
+                c.gotany = False
+                ret = self.client.run(self.get_args(want, c.sortkey), mycb)
+                if ret != 0:
+                    return ret
         return 0
 
 
