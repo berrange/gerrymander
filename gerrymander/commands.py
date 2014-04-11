@@ -101,15 +101,15 @@ class CommandConfig(object):
         return list(map(lambda x: x.strip(), value.split(",")))
 
     def get_group_projects(self, groupname):
-        section = "group:" + groupname
+        section = "group-" + groupname
         if not self.config.has_option(section, "projects"):
             return []
         value = self.config.get(section, "projects")
         return list(map(lambda x: x.strip(), value.split(",")))
 
     def get_group_team_members(self, groupname, teamname):
-        section = "group:" + groupname
-        key = "team:" + teamname
+        section = "group-" + groupname
+        key = "team-" + teamname
         if not self.config.has_option(section, key):
             return []
         value = self.config.get(section, key)
@@ -165,9 +165,9 @@ class Command(object):
             return
 
         value = None
-        section =  "command:" + self.name
+        section =  "command-" + self.name
         if options.profile is not None:
-            altsection =  "command:" + self.name + ":" + options.profile
+            altsection =  "command-" + self.name + "-" + options.profile
             if config.has_option(altsection, name):
                 section = altsection
         if not config.has_option(section, name):
