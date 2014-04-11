@@ -275,13 +275,23 @@ class CommandPatchReviewStats(CommandReport):
     def __init__(self):
         CommandReport.__init__(self, "patchreviewstats")
 
+    def add_options(self):
+        CommandReport.add_options(self)
+
+        self.add_option("--all-groups", action="store_true",
+                        help="Report on stats from all project groups")
+
     def get_report(self, config, client, options, args):
         return ReportPatchReviewStats(client,
                                       options.project)
 
     def run(self, config, client, options, args):
         projects = options.project
-        for group in options.group:
+        groups = options.group
+        if options.all_groups:
+            groups = config.get_organization_groups()
+
+        for group in groups:
             projects.extend(config.get_group_projects(group))
 
         if len(options.project) == 0:
