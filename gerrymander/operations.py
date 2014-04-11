@@ -89,9 +89,12 @@ class OperationQuery(OperationBase):
         def mycb(line):
             if 'rowCount' in line:
                 return
+            if 'error' in line:
+                raise Exception(line['message'])
 
             change = ModelChange.from_json(line)
-            c.sortkey = line["sortKey"]
+            if "sortKey" in line:
+                c.sortkey = line["sortKey"]
             c.gotany = True
             c.count = c.count + 1
             cb(change)
