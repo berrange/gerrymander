@@ -248,15 +248,21 @@ class CommandReport(Command):
     def add_options(self):
         Command.add_options(self)
         self.add_option("-l", "--limit", default=None,
-                          help="Limit to N results")
+                        help="Limit to N results")
 
         self.add_option("-p", "--project", default=[],
-                          action="append",
-                          help="Gather information for project")
+                        action="append",
+                        help="Gather information for project")
 
         self.add_option("-g", "--group", default=[],
-                          action="append",
-                          help="Gather information for project group")
+                        action="append",
+                        help="Gather information for project group")
+
+        self.add_option("--sort", default=None,
+                        help="Set the sort field")
+        self.add_option("--field", default=[],
+                        action="append",
+                        help="Display the named field")
 
     def get_projects(self, config, options):
         if len(options.project) > 0 and len(options.group) > 0:
@@ -271,6 +277,32 @@ class CommandReport(Command):
         limit = options.limit
         if limit is not None:
             limit = int(limit)
+
+        if options.sort is not None:
+            reverse = False
+            offset = options.sort.find(":")
+            if offset != -1:
+                if options.sort[offset + 1:] == "rev":
+                    reverse = True
+                options.sort = options.sort[0:offset]
+            report.set_sort_column(options.sort, reverse)
+
+        if len(options.field) > 0:
+            for col in report.get_columns():
+                col.visible = False
+            for key in options.field:
+                name = key
+                offset = name.find(":")
+                truncate = None
+                if offset != -1:
+                    truncate = int(name[offset+1:])
+                    name = name[0:offset]
+                col = report.get_column(name)
+                if col is None:
+                    raise Exception("Unknown field '%s'" % name)
+                if truncate is not None:
+                    col.truncate = truncate
+                col.visible = True
 
         table = report.get_table(limit=limit)
         print (table)
