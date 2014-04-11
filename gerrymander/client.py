@@ -137,6 +137,7 @@ class ClientCaching(ClientLive):
         args = " ".join(argv)
         m = hashlib.sha256()
         m.update(args.encode("UTF-8"))
+        LOG.debug("Finding cache for args '%s'" % args)
         file = self.cachedir + "/" + m.hexdigest() + ".json"
         if not os.path.exists(file):
             sp = self._run_async(argv)
