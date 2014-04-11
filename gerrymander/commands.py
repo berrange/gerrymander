@@ -267,7 +267,11 @@ class CommandReport(Command):
     def run(self, config, client, options, args):
         report = self.get_report(config, client, options, args)
 
-        table = report.get_table(limit=int(options.limit))
+        limit = options.limit
+        if limit is not None:
+            limit = int(limit)
+
+        table = report.get_table(limit=limit)
         print (table)
 
 class CommandPatchReviewStats(CommandReport):
