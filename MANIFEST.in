@@ -9,4 +9,5 @@ include gerrymander/*.py
 include autobuild.sh
 include gerrymander.spec
 include gerrymander.spec.in
+include conf/gerrymander.conf-example
 global-exclude *.pyc

@@ -1,0 +1,71 @@
+# This config file should be saved as $HOME/.gerrymander
+
+#[server]
+# If not set defaults to 'review' - setup such an
+# alias in your $HOME/.ssh/config if you wish, or
+# uncomment these instead
+#hostname=review.openstack.org
+#port=29418
+#username=berrange
+#keyfile=/home/berrange/.ssh/id_rsa.pub
+
+#[organization]
+# List the names of teams you use with gerrit. For
+# example OpenStack projects have the "Core team"
+# concept for people allowed to +2/+A patches. If
+# you have multiple teams you can list them comma
+# separated
+#teams = core
+
+# List the names of groups you use with gerrit.
+# Each group will be associated with one or more
+# gerrit projects
+#groups = nova, neutron
+
+# Now we list the group info, one section for each
+# group defined above
+#[group-nova]
+
+# The list of gerrit projects asociated with the group
+#projects = openstack/nova, openstack/python-novaclient, openstack/compute-api
+
+# The list of usernames associated with the team 'core' for
+# this project
+#team-core = jogo, sdague, danms, yunmao, p-draigbrady, mikalstill, russellb, cerberus, markmc, cbehrens, klmitch, johannes.erdfelt, vishvananda, belliott, tr3buchet, devananda, alaski, berrange, johngarbutt
+
+# If you had more than one team defined, then list members
+# for next team here
+
+# And the second group...
+#[group-neutron]
+#projects = openstack/neutron, openstack/python-neutronclient, openstack/netconn-api
+#team-core = arosen, amotoki, danwent, emagana, garyk, markmcclain, maru, nati-ueno, rkukura, salvatore-orlando, snaiksat, gongysh
+
+# Each command line tool can have the default values for
+# its command line flags set here.
+#   - string flags - just the string value
+#   - bool flags - 'True' or 'False' (case insensitive)
+#   - list flags - comma separated
+#[command-patchreviewstats]
+#group=nova
+#project=openstack/nova, openstack/compute-api
+#debug=False
+
+# It is possible to define multiple "profiles" for each
+# named command, with a different set of default settings
+# for each profile. This provides the default profile
+#[command-changes]
+#group=nova
+#sort=createdOn
+#branch=master
+#field=url, branch, owner, subject:50, lastUpdated, createdOn, approvals
+#status=open
+
+# And this is a profile called 'specs' eg you can run
+# with  gerrymander-changes --profile specs
+#[command-changes-specs]
+#project=openstack/nova-specs
+#sort=createdOn
+#branch=master
+#field=url, owner, subject:80, approvals
+#status=open
