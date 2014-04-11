@@ -35,10 +35,27 @@ class CommandConfig(object):
         self.config = configparser.ConfigParser()
         self.config.read([self.filename])
 
-    def get_option(self, section, value, defvalue=None):
-        if not self.config.has_option(section, value):
+    def has_option(self, section, name):
+        return self.config.has_option(section, name)
+
+    def get_option_string(self, section, name, defvalue=None):
+        if not self.config.has_option(section, name):
             return defvalue
-        return self.config.get(section, value)
+        return self.config.get(section, name)
+
+    def get_option_list(self, section, name, defvalue=None):
+        if not self.config.has_option(section, name):
+            return defvalue
+        value = self.config.get(section, name)
+        return list(map(lambda x: x.strip(), value.split(",")))
+
+    def get_option_bool(self, section, name, defvalue=None):
+        if not self.config.has_option(section, name):
+            return defvalue
+        value = self.config.get(section, name).strip()
+        if value.lower() in ["true", "yes"]:
+            return True
+        return False
 
     def get_server_username(self):
         if not self.config.has_option("server", "username"):
@@ -94,15 +111,50 @@ class Command(object):
         self.add_option("-q", "--quiet",
                         help="Supress display of warnings",
                         action="store_true")
+        self.add_option("-z", "--profile",
+                        help="Select command options set from config")
+
+    def is_config_option_set(self, options, name):
+        option = self.options[name]
+        value = getattr(options, name)
+        if getattr(options, name) == None:
+            return False
+
+        if option.action == "append":
+            if len(getattr(options, name)) == 0:
+                return False
+        elif option.action == "store_true":
+            if getattr(options, name) == False:
+                return False
+
+        return True
+
+    def set_config_option(self, config, options, name):
+        option = self.options[name]
+        value = getattr(options, name)
+
+        if self.is_config_option_set(options, name):
+            return
+
+        value = None
+        section =  "command:" + self.name
+        if options.profile is not None:
+            altsection =  "command:" + self.name + ":" + options.profile
+            if config.has_option(altsection, name):
+                section = altsection
+        if not config.has_option(section, name):
+            return
+
+        if option.action == "store_true":
+            setattr(options, name, config.get_option_bool(section, name))
+        elif option.action == "append":
+            setattr(options, name, config.get_option_list(section, name))
+        else:
+            setattr(options, name, config.get_option_string(section, name))
 
     def set_config_options(self, config, options):
         for name in self.options.keys():
-            option = self.options[name]
-            value = getattr(options, name)
-            if value is None or (type(value) == list and len(value) == 0):
-                section = "command:" + self.name
-                value = config.get_option(section, name)
-                setattr(options, name, value)
+            self.set_config_option(config, options, name)
 
     def get_client(self, config):
         if self.caching:
@@ -128,6 +180,9 @@ class Command(object):
         if self.parser is None:
             self.add_options()
         options, args = self.parser.parse_args()
+        config = self.get_config(options)
+        self.set_config_options(config, options)
+
         level = logging.WARNING
         if options.debug:
             level = logging.DEBUG
@@ -137,10 +192,6 @@ class Command(object):
         logging.basicConfig(level=level,
                             format='%(asctime)s %(levelname)s: %(message)s',
                             stream=sys.stderr)
-
-        config = self.get_config(options)
-
-        self.set_config_options(config, options)
 
         client = self.get_client(config)
 
