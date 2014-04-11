@@ -142,21 +142,26 @@ class ReportPatchReviewStats(Report):
         self.projects = projects
 
     def generate(self):
-        query = OperationQuery(self.client,
-                               {
-                                   "project": self.projects,
-                               },
-                               patches=OperationQuery.PATCHES_ALL,
-                               approvals=True)
-
+        # We could query all projects at once, but if we do them
+        # individually it means we get better hit rate against the
+        # cache if the report is re-run for many different project
+        # combinations
         reviews = []
+        for project in self.projects:
+            query = OperationQuery(self.client,
+                                   {
+                                       "project": [project],
+                                   },
+                                   patches=OperationQuery.PATCHES_ALL,
+                                   approvals=True)
 
-        def querycb(change):
-            for patch in change.patches:
-                for approval in patch.approvals:
-                    reviews.append(approval)
 
-        query.run(querycb, limit=20000)
+            def querycb(change):
+                for patch in change.patches:
+                    for approval in patch.approvals:
+                        reviews.append(approval)
+
+            query.run(querycb, limit=20000)
 
         reviewers = {}
         for review in reviews:
