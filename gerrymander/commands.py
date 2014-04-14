@@ -100,6 +100,12 @@ class CommandConfig(object):
         value = self.config.get("organization", "teams")
         return list(map(lambda x: x.strip(), value.split(",")))
 
+    def get_organization_bots(self):
+        if not self.config.has_option("organization", "bots"):
+            return []
+        value = self.config.get("organization", "bots")
+        return list(map(lambda x: x.strip(), value.split(",")))
+
     def get_group_projects(self, groupname):
         section = "group-" + groupname
         if not self.config.has_option(section, "projects"):

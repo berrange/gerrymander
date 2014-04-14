@@ -30,6 +30,10 @@
 # gerrit projects
 #groups = nova, neutron
 
+# List of user names associated with automated robots,
+# comma separated
+#bots=jenkins, turbo-hipster, hyper-v-ci, citrix_xenserver_ci
+
 # Now we list the group info, one section for each
 # group defined above
 #[group-nova]
