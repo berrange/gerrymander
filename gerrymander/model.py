@@ -22,6 +22,13 @@ class ModelUser(ModelBase):
         self.email = email
         self.username = username
 
+    def is_in_list(self, users):
+        if self.name is not None and self.name in users:
+            return True
+        if self.username is not None and self.username in users:
+            return True
+        return False
+
     @staticmethod
     def from_json(data):
         return ModelUser(data.get("name", None),
@@ -60,6 +67,11 @@ class ModelApproval(ModelBase):
             self.grantedOn = None
         self.user = user
 
+    def is_user_in_list(self, users):
+        if self.user is None:
+            return False
+        return self.user.is_in_list(users)
+
     @staticmethod
     def from_json(data):
         user = None
@@ -82,6 +94,38 @@ class ModelPatch(ModelBase):
         self.approvals = approvals
         self.files = files
         self.comments = comments
+
+    @staticmethod
+    def is_user_in_list(users, user):
+        if user.username is not None and user.username in users:
+            return True
+
+        if user.email is not None and user.email in users:
+            return True
+
+        return False
+
+    def has_other_reviewers(self, excludeusers):
+        '''Determine if the patch has been reviewed by any
+        users that are not in 'excludeusers'''
+
+        hasReviewers = False
+        for approval in self.approvals:
+            if not approval.is_user_in_list(excludeusers):
+                hasReviewers = True
+        return hasReviewers
+
+    def has_reviewers(self, includeusers):
+        '''Determine if the patch has been reviewed by any
+        users that are in 'includeusers'''
+
+        hasReviewers = False
+        for approval in self.approvals:
+            if approval.user is None:
+                continue
+            if approval.is_user_in_list(includeusers):
+                hasReviewers = True
+        return hasReviewers
 
     @staticmethod
     def from_json(data):
@@ -132,6 +176,52 @@ class ModelChange(ModelBase):
         if len(self.patches) == 0:
             return None
         return self.patches[len(self.patches) - 1]
+
+    @staticmethod
+    def is_user_in_list(users, user):
+        if user.username is not None and user.username in users:
+            return True
+
+        if user.email is not None and user.email in users:
+            return True
+
+        return False
+
+    def has_any_other_reviewers(self, excludeusers):
+        '''Determine if any patch in the change has been
+        reviewed by any user not in the list of 'excludeusers'''
+
+        hasReviewers = False
+        for patch in self.patches:
+            if patch.has_other_reviewers(excludeusers):
+                hasReviewers = True
+        return hasReviewers
+
+    def has_any_reviewers(self, includeusers):
+        '''Determine if any patch in the change has been
+        reviewed by any user in the list of 'includeusers'''
+
+        hasReviewers = False
+        for patch in self.patches:
+            if patch.has_reviewers(includeusers):
+                hasReviewers = True
+        return hasReviewers
+
+    def has_current_reviewers(self, includeusers):
+        '''Determine if the current patch version has
+        been reviewed by any of the users in 'includeusers'. '''
+        patch = self.get_current_patch()
+        if patch is None:
+            return False
+        return patch.has_reviewers(includeusers)
+
+    def has_current_other_reviewers(self, excludeusers):
+        '''Determine if the current patch version has
+        been reviewed by any of the users not in 'excludeusers'. '''
+        patch = self.get_current_patch()
+        if patch is None:
+            return False
+        return patch.has_other_reviewers(excludeusers)
 
     @staticmethod
     def from_json(data):
