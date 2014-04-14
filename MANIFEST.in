@@ -10,6 +10,7 @@ include scripts/gerrymander-todo-mine
 include scripts/gerrymander-todo-noones
 include scripts/gerrymander-todo-others
 include gerrymander/*.py
+include tests/*.py
 include autobuild.sh
 include gerrymander.spec
 include gerrymander.spec.in

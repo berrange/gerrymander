@@ -16,9 +16,11 @@ Group: Development/Libraries
 Requires: python3-gerrymander
 %if %{with_python2}
 BuildRequires: python
+BuildRequires: python-nose
 %endif
 %if %{with_python3}
 BuildRequires: python3
+BuildRequires: python3-nose
 %endif
 
 %if %{with_python2}
@@ -74,13 +76,13 @@ rm -f %{buildroot}%{python_sitelib}/*egg-info
 rm -f %{buildroot}%{python3_sitelib}/*egg-info
 %endif
 
-#check
-#if %{with_python2}
-#{__python} setup.py test
-#endif
-#if %{with_python3}
-#{__python3} setup.py test
-#endif
+%check
+%if %{with_python2}
+%{__python} setup.py test
+%endif
+%if %{with_python3}
+%{__python3} setup.py test
+%endif
 
 %files
 %defattr(-,root,root)

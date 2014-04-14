@@ -10,12 +10,12 @@ rm -rf MANIFEST dist build
 python2 setup.py sdist
 
 python2 setup.py build
-#python2 setup.py test
+python2 setup.py test
 python2 setup.py install --root="$AUTOBUILD_INSTALL_ROOT"
 
 if test -f /usr/bin/python3 ; then
   python3 setup.py build
-  #python3 setup.py test
+  python3 setup.py test
   python3 setup.py install --root="$AUTOBUILD_INSTALL_ROOT"
 fi
 

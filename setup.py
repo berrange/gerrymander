@@ -1,7 +1,9 @@
 
 from distutils.core import setup, Extension, Command
 from distutils.command.sdist import sdist
+from distutils.util import get_platform
 
+import sys
 import os
 import re
 import time
@@ -106,6 +108,49 @@ class my_rpm(Command):
                   self.distribution.get_version())
 
 
+class my_test(Command):
+    user_options = [
+        ('build-base=', 'b',
+         "base directory for build library"),
+        ('build-platlib=', None,
+         "build directory for platform-specific distributions"),
+        ('plat-name=', 'p',
+         "platform name to build for, if supported "
+         "(default: %s)" % get_platform()),
+    ]
+
+    description = "Run test suite."
+
+    def initialize_options(self):
+        self.build_base = 'build'
+        self.build_platlib = None
+        self.plat_name = None
+
+    def finalize_options(self):
+        if self.plat_name is None:
+            self.plat_name = get_platform()
+
+        plat_specifier = ".%s-%s" % (self.plat_name, sys.version[0:3])
+
+        if hasattr(sys, 'gettotalrefcount'):
+            plat_specifier += '-pydebug'
+
+        if self.build_platlib is None:
+            self.build_platlib = os.path.join(self.build_base,
+                                              'lib' + plat_specifier)
+
+    def run(self):
+        """
+        Run test suite
+        """
+
+        if "PYTHONPATH" in os.environ:
+            os.environ["PYTHONPATH"] = self.build_platlib + ":" + os.environ["PYTHONPATH"]
+        else:
+            os.environ["PYTHONPATH"] = self.build_platlib
+        self.spawn([sys.executable, "/usr/bin/nosetests"])
+
+
 setup(
     name="gerrymander",
     version="1.0",
@@ -126,5 +171,6 @@ setup(
     cmdclass = {
           'sdist': my_sdist,
           'rpm': my_rpm,
+          'test': my_test
     },
 )
