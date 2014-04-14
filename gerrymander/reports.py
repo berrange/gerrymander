@@ -246,13 +246,13 @@ class ReportChanges(Report):
             return row.createdOn
 
     COLUMNS = [
-        ReportColumn("status", "Status", lambda col, row: row.status),
-        ReportColumn("topic", "Topic", lambda col, row: row.topic, visible=False),
-        ReportColumn("url", "URL", lambda col, row: row.url),
+        ReportColumn("status", "Status", lambda rep, col, row: row.status),
+        ReportColumn("topic", "Topic", lambda rep, col, row: row.topic, visible=False),
+        ReportColumn("url", "URL", lambda rep, col, row: row.url),
         ReportColumn("owner", "Owner", user_mapfunc),
-        ReportColumn("project", "Project", lambda col, row: row.project, visible=False),
-        ReportColumn("branch", "Branch", lambda col, row: row.branch, visible=False),
-        ReportColumn("subject", "Subject", lambda col, row: row.subject, truncate=30),
+        ReportColumn("project", "Project", lambda rep, col, row: row.project, visible=False),
+        ReportColumn("branch", "Branch", lambda rep, col, row: row.branch, visible=False),
+        ReportColumn("subject", "Subject", lambda rep, col, row: row.subject, truncate=30),
         ReportColumn("createdOn", "Created", date_mapfunc, date_sortfunc),
         ReportColumn("lastUpdated", "Updated", date_mapfunc, date_sortfunc),
         ReportColumn("approvals", "Approvals", approvals_mapfunc),
