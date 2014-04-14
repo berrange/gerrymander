@@ -146,7 +146,7 @@ class ModelPatch(ModelBase):
 
         user = None
         if "uploader" in data:
-            user = ModelUser.from_json(data["uploader"]),
+            user = ModelUser.from_json(data["uploader"])
 
         return ModelPatch(int(data.get("number", 0)),
                           data.get("revision"),
