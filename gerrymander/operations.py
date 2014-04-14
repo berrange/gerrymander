@@ -68,13 +68,26 @@ class OperationQuery(OperationBase):
         terms = list(self.terms.keys())
         terms.sort()
         for term in terms:
-            if len(self.terms[term]) == 0:
+            negateAll = False
+            terms = self.terms[term]
+            if len(terms) > 0 and terms[0] == "!":
+                negateAll = True
+                terms = terms[1:]
+
+            if len(terms) == 0:
                 continue
+
             subclauses = []
-            for value in self.terms[term]:
+            for value in terms:
                 subclauses.append("%s:%s" % (term, value))
-            clauses.append(" OR ".join(subclauses))
-        args.append(" AND ".join(map(lambda a: "( %s )" % a, clauses)))
+
+            clause = " OR ".join(subclauses)
+            if negateAll:
+                clause = "( NOT ( " + clause + " ) )"
+            else:
+                clause = "( " + clause + " )"
+            clauses.append(clause)
+        args.append(" AND ".join(clauses))
         return args
 
     def run(self, cb, limit=None):
