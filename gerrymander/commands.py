@@ -276,23 +276,11 @@ class CommandReport(CommandCaching):
         self.add_option("-l", "--limit", default=None,
                         help="Limit to N results")
 
-        self.add_option("-p", "--project", default=[],
-                        action="append",
-                        help="Gather information for project")
-
-        self.add_option("-g", "--group", default=[],
-                        action="append",
-                        help="Gather information for project group")
-
         self.add_option("--sort", default=None,
                         help="Set the sort field")
         self.add_option("--field", default=[],
                         action="append",
                         help="Display the named field")
-
-    def get_projects(self, config, options):
-        if len(options.project) > 0 and len(options.group) > 0:
-            raise Exception("--project and --group are mutually exclusive")
 
     def get_report(self, config, client, options, args):
         raise NotImplementedError("subclass must override get_query")
@@ -333,62 +321,97 @@ class CommandReport(CommandCaching):
         table = report.get_table(limit=limit)
         print (table)
 
-class CommandPatchReviewStats(CommandReport):
 
-    def __init__(self):
-        CommandReport.__init__(self, "patchreviewstats")
-        self.teams = {}
+class CommandProject(CommandReport):
+
+    def __init__(self, name):
+        CommandReport.__init__(self, name)
+
 
     def add_options(self):
         CommandReport.add_options(self)
 
+        self.add_option("-p", "--project", default=[],
+                        action="append",
+                        help="Gather information for project")
+
+        self.add_option("-g", "--group", default=[],
+                        action="append",
+                        help="Gather information for project group")
+
         self.add_option("--all-groups", action="store_true",
-                        help="Report on stats from all project groups")
+                        help="Report on changes from all project groups")
 
-    def get_report(self, config, client, options, args):
-        return ReportPatchReviewStats(client,
-                                      options.project,
-                                      self.teams)
 
-    def run(self, config, client, options, args):
-        projects = options.project
-        if len(projects) == 0:
+    def get_projects(self, config, options, requireOne=False):
+        count = 0
+        if len(options.project) > 0:
+            count = count + 1
+        if len(options.group) > 0:
+            count = count + 1
+        if options.all_groups:
+            count = count + 1
+
+        if count > 1:
+            raise Exception("--project, --group and --all-groups are mutually exclusive")
+        if count == 0 and requireOne:
+            raise Exception("One of --project, --group or --all-groups is required")
+
+        if len(options.project) == 0:
+            projects = []
             if options.all_groups:
                 groups = config.get_organization_groups()
             else:
                 groups = options.group
 
-            char = '*'
-            teamchars = {}
-            self.teams = {}
-            for team in config.get_organization_teams():
-                teamchars[team] = char
-                self.teams[char] = []
-                char = char + "*"
-
             for group in groups:
                 projects.extend(config.get_group_projects(group))
-                teams = {}
-                for team in config.get_organization_teams():
-                    users = config.get_group_team_members(group, team)
-                    self.teams[teamchars[team]].extend(users)
+            return projects
+        else:
+            return options.project
 
-        if len(options.project) == 0:
-            sys.stderr.write("At least one project is required\n")
-            return 255
+
+class CommandPatchReviewStats(CommandProject):
+
+    def __init__(self):
+        CommandProject.__init__(self, "patchreviewstats")
+        self.teams = {}
+
+    def get_report(self, config, client, options, args):
+        return ReportPatchReviewStats(client,
+                                      self.get_projects(config, options, True),
+                                      self.teams)
+
+    def run(self, config, client, options, args):
+        if options.all_groups:
+            groups = config.get_organization_groups()
+        else:
+            groups = options.group
+
+        char = '*'
+        teamchars = {}
+        self.teams = {}
+        for team in config.get_organization_teams():
+            teamchars[team] = char
+            self.teams[char] = []
+            char = char + "*"
+
+        for group in groups:
+            teams = {}
+            for team in config.get_organization_teams():
+                users = config.get_group_team_members(group, team)
+                self.teams[teamchars[team]].extend(users)
+
         return CommandReport.run(self, config, client, options, args)
 
 
-class CommandChanges(CommandReport):
+class CommandChanges(CommandProject):
 
     def __init__(self):
-        CommandReport.__init__(self, "changes")
+        CommandProject.__init__(self, "changes")
 
     def add_options(self):
-        CommandReport.add_options(self)
-
-        self.add_option("--all-groups", action="store_true",
-                        help="Report on changes from all project groups")
+        CommandProject.add_options(self)
 
         self.add_option("--status", action="append", default=[],
                         help="Filter based on status")
@@ -405,7 +428,7 @@ class CommandChanges(CommandReport):
 
     def get_report(self, config, client, options, args):
         return ReportChanges(client,
-                             projects=options.project,
+                             self.get_projects(config, options),
                              status=options.status,
                              reviewers=options.reviewer,
                              branches=options.branch,
@@ -413,16 +436,3 @@ class CommandChanges(CommandReport):
                              owners=options.owner,
                              approvals=options.approval,
                              files=args)
-
-    def run(self, config, client, options, args):
-        projects = options.project
-        if len(projects) == 0:
-            if options.all_groups:
-                groups = config.get_organization_groups()
-            else:
-                groups = options.group
-
-            for group in groups:
-                projects.extend(config.get_group_projects(group))
-
-        return CommandReport.run(self, config, client, options, args)
