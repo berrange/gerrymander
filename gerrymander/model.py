@@ -86,7 +86,7 @@ class ModelApproval(ModelBase):
         if data.get("by", None):
             user = ModelUser.from_json(data["by"])
         return ModelApproval(data.get("type", None),
-                             data.get("value", None),
+                             int(data.get("value", 0)),
                              data.get("description", None),
                              data.get("grantedOn", None),
                              user)
