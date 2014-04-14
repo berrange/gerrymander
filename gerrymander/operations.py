@@ -32,9 +32,8 @@ class OperationQuery(OperationBase):
     STATUS_REVIEWED = "reviewed"
     STATUS_MERGED = "merged"
     STATUS_ABANDONED = "abandoned"
-
-    STATUS_LIST_OPEN = [ STATUS_SUBMITTED, STATUS_REVIEWED ]
-    STATUS_LIST_CLOSED = [ STATUS_MERGED, STATUS_ABANDONED ]
+    STATUS_OPEN = "open"
+    STATUS_CLOSED = "closed"
 
     def __init__(self, client, terms={}, patches=PATCHES_NONE, approvals=False, files=False):
         OperationBase.__init__(self, client)
