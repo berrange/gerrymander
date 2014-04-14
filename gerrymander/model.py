@@ -58,9 +58,10 @@ class ModelApproval(ModelBase):
     ACTION_APPROVED = "APRV"
     ACTION_SUBMITTED = "SUBM"
 
-    def __init__(self, action, value, grantedOn=None, user=None):
+    def __init__(self, action, value, description, grantedOn=None, user=None):
         self.action = action
         self.value = value
+        self.description = description
         if grantedOn is not None:
             self.grantedOn = int(grantedOn)
         else:
@@ -86,6 +87,7 @@ class ModelApproval(ModelBase):
             user = ModelUser.from_json(data["by"])
         return ModelApproval(data.get("type", None),
                              data.get("value", None),
+                             data.get("description", None),
                              data.get("grantedOn", None),
                              user)
 
