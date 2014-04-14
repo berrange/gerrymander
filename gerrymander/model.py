@@ -72,6 +72,13 @@ class ModelApproval(ModelBase):
             return False
         return self.user.is_in_list(users)
 
+    def is_newer_than(self, then):
+        if self.grantedOn is None:
+            return False
+        if self.grantedOn > then:
+            return True
+        return False
+
     @staticmethod
     def from_json(data):
         user = None

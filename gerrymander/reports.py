@@ -16,6 +16,7 @@
 
 import prettytable
 import logging
+import time
 
 from gerrymander.operations import OperationQuery
 from gerrymander.model import ModelApproval
@@ -155,11 +156,12 @@ class ReportPatchReviewStats(Report):
         ReportColumn("ratio", "+/-", ratio_mapfunc, format="%0.0lf%%", align=ReportColumn.ALIGN_RIGHT),
     ]
 
-    def __init__(self, client, projects, teams={}):
+    def __init__(self, client, projects, maxagedays=30, teams={}):
         Report.__init__(self, client, ReportPatchReviewStats.COLUMNS,
                         sort="reviews", reverse=True)
         self.projects = projects
         self.teams = teams
+        self.maxagedays = maxagedays
 
     def generate(self):
         # We could query all projects at once, but if we do them
@@ -167,6 +169,7 @@ class ReportPatchReviewStats(Report):
         # cache if the report is re-run for many different project
         # combinations
         reviews = []
+        cutoff = time.time() - (self.maxagedays * 24 * 60 * 60)
         for project in self.projects:
             query = OperationQuery(self.client,
                                    {
@@ -179,7 +182,8 @@ class ReportPatchReviewStats(Report):
             def querycb(change):
                 for patch in change.patches:
                     for approval in patch.approvals:
-                        reviews.append(approval)
+                        if approval.is_newer_than(cutoff):
+                            reviews.append(approval)
 
             query.run(querycb)
 

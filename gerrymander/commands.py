@@ -397,9 +397,16 @@ class CommandPatchReviewStats(CommandProject):
         CommandProject.__init__(self, "patchreviewstats", longcache=True)
         self.teams = {}
 
+    def add_options(self):
+        CommandProject.add_options(self)
+
+        self.add_option("--days", default=30,
+                        help="Set number of days history to consult")
+
     def get_report(self, config, client, options, args):
         return ReportPatchReviewStats(client,
                                       self.get_projects(config, options, True),
+                                      int(options.days),
                                       self.teams)
 
     def run(self, config, client, options, args):
