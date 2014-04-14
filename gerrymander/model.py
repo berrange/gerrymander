@@ -240,11 +240,15 @@ class ModelChange(ModelBase):
         if "owner" in data:
             user = ModelUser.from_json(data["owner"])
 
+        number = None
+        if "number" in data:
+            number = int(data.get("number"))
+
         return ModelChange(data.get("project", None),
                            data.get("branch", None),
                            data.get("topic", None),
                            data.get("id", None),
-                           data.get("number", None),
+                           number,
                            data.get("subject", None),
                            user,
                            data.get("url", None),
