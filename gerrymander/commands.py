@@ -345,9 +345,7 @@ class CommandPatchReviewStats(CommandReport):
                 teams = {}
                 for team in config.get_organization_teams():
                     users = config.get_group_team_members(group, team)
-                    print ("User %s", users)
                     self.teams[teamchars[team]].extend(users)
-                    print ("%s=%s %s " % (group, team, self.teams[teamchars[team]]))
 
         if len(options.project) == 0:
             sys.stderr.write("At least one project is required\n")
