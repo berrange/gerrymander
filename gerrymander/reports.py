@@ -210,8 +210,7 @@ class ReportPatchReviewStats(Report):
         return reviewers
 
 
-class ReportChanges(Report):
-
+class ReportBaseChange(Report):
     def approvals_mapfunc(rep, col, row):
         patch = row.get_current_patch()
         if patch is None:
@@ -258,11 +257,16 @@ class ReportChanges(Report):
         ReportColumn("approvals", "Approvals", approvals_mapfunc),
     ]
 
+    def __init__(self, client):
+        Report.__init__(self, client, ReportBaseChange.COLUMNS,
+                        sort="createdOn", reverse=False)
+
+class ReportChanges(ReportBaseChange):
+
     def __init__(self, client, projects=[], owners=[],
                  status=[], messages=[], branches=[], reviewers=[],
                  approvals=[], files=[]):
-        Report.__init__(self, client, ReportChanges.COLUMNS,
-                        sort="createdOn", reverse=False)
+        ReportBaseChange.__init__(self, client)
         self.projects = projects
         self.owners = owners
         self.status = status
