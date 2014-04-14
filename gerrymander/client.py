@@ -121,7 +121,7 @@ class ClientCaching(ClientLive):
             LOG.debug("File %s has time %d" % (filepath, mtime))
             if mtime < then:
                 LOG.info("Purging outdated cache %s" % filepath)
-                os.unlink(file)
+                os.unlink(filepath)
 
     def _purge_cache(self):
         # XXX we really need to protect individual files
