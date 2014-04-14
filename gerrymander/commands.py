@@ -118,9 +118,8 @@ class CommandConfig(object):
 
 class Command(object):
 
-    def __init__(self, name, caching=False):
+    def __init__(self, name):
         self.name = name
-        self.caching = caching
         self.parser = None
         self.options = {}
 
@@ -184,19 +183,11 @@ class Command(object):
         for name in self.options.keys():
             self.set_config_option(config, options, name)
 
-    def get_client(self, config):
-        if self.caching:
-            return ClientCaching(config.get_server_hostname(),
-                                 config.get_server_port(),
-                                 config.get_server_username(),
-                                 config.get_server_keyfile(),
-                                 config.get_cache_directory(),
-                                 config.get_cache_lifetime())
-        else:
-            return ClientLive(config.get_server_hostname(),
-                              config.get_server_port(),
-                              config.get_server_username(),
-                              config.get_server_keyfile())
+    def get_client(self, config, options):
+        return ClientLive(config.get_server_hostname(),
+                          config.get_server_port(),
+                          config.get_server_username(),
+                          config.get_server_keyfile())
 
     def get_config(self, options):
         return CommandConfig(options.config)
@@ -221,9 +212,34 @@ class Command(object):
                             format='%(asctime)s %(levelname)s: %(message)s',
                             stream=sys.stderr)
 
-        client = self.get_client(config)
+        client = self.get_client(config, options)
 
         return self.run(config, client, options, args)
+
+
+class CommandCaching(Command):
+
+    def __init__(self, name):
+        Command.__init__(self, name)
+
+    def add_options(self):
+        Command.add_options(self)
+        self.add_option("--no-cache", action="store_true",
+                        help="Disable use of gerrit query cache")
+
+    def get_client(self, config, options):
+        if options.no_cache:
+            return ClientLive(config.get_server_hostname(),
+                              config.get_server_port(),
+                              config.get_server_username(),
+                              config.get_server_keyfile())
+        else:
+            return ClientCaching(config.get_server_hostname(),
+                                 config.get_server_port(),
+                                 config.get_server_username(),
+                                 config.get_server_keyfile(),
+                                 config.get_cache_directory(),
+                                 config.get_cache_lifetime())
 
 
 class CommandWatch(Command):
@@ -240,13 +256,14 @@ class CommandWatch(Command):
         return watch.run(cb)
 
 
-class CommandReport(Command):
+class CommandReport(CommandCaching):
 
     def __init__(self, name):
-        Command.__init__(self, name, caching=True)
+        CommandCaching.__init__(self, name)
 
     def add_options(self):
-        Command.add_options(self)
+        CommandCaching.add_options(self)
+
         self.add_option("-l", "--limit", default=None,
                         help="Limit to N results")
 
