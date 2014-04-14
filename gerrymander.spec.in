@@ -88,6 +88,10 @@ rm -f %{buildroot}%{python3_sitelib}/*egg-info
 %{_bindir}/gerrymander-watch
 %{_bindir}/gerrymander-patchreviewstats
 %{_bindir}/gerrymander-changes
+%{_bindir}/gerrymander-todo-anyones
+%{_bindir}/gerrymander-todo-mine
+%{_bindir}/gerrymander-todo-noones
+%{_bindir}/gerrymander-todo-others
 
 %if %{with_python2}
 %files -n python-gerrymander

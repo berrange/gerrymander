@@ -5,6 +5,10 @@ include setup.py
 include scripts/gerrymander-patchreviewstats
 include scripts/gerrymander-watch
 include scripts/gerrymander-changes
+include scripts/gerrymander-todo-anyones
+include scripts/gerrymander-todo-mine
+include scripts/gerrymander-todo-noones
+include scripts/gerrymander-todo-others
 include gerrymander/*.py
 include autobuild.sh
 include gerrymander.spec

@@ -18,7 +18,12 @@ from gerrymander.client import ClientCaching
 from gerrymander.operations import OperationWatch
 from gerrymander.reports import ReportPatchReviewStats
 from gerrymander.reports import ReportChanges
+from gerrymander.reports import ReportToDoListMine
+from gerrymander.reports import ReportToDoListOthers
+from gerrymander.reports import ReportToDoListAnyones
+from gerrymander.reports import ReportToDoListNoones
 
+import getpass
 import os
 import logging
 import sys
@@ -436,3 +441,55 @@ class CommandChanges(CommandProject):
                              owners=options.owner,
                              approvals=options.approval,
                              files=args)
+
+class CommandToDoMine(CommandProject):
+
+    def __init__(self):
+        CommandProject.__init__(self, "todo-mine")
+
+
+    def get_report(self, config, client, options, args):
+        username = config.get_server_username()
+        if username is None:
+            username = getpass.getuser()
+
+        return ReportToDoListMine(client,
+                                  username=username,
+                                  projects=self.get_projects(config, options))
+
+
+class CommandToDoOthers(CommandProject):
+
+    def __init__(self):
+        CommandProject.__init__(self, "todo-others")
+
+    def get_report(self, config, client, options, args):
+        username = config.get_server_username()
+        if username is None:
+            username = getpass.getuser()
+
+        return ReportToDoListOthers(client,
+                                    username=username,
+                                    projects=self.get_projects(config, options))
+
+
+class CommandToDoAnyones(CommandProject):
+
+    def __init__(self):
+        CommandProject.__init__(self, "todo-anyones")
+
+    def get_report(self, config, client, options, args):
+        return ReportToDoListAnyones(client,
+                                     bots=config.get_organization_bots(),
+                                     projects=self.get_projects(config, options))
+
+
+class CommandToDoNoones(CommandProject):
+
+    def __init__(self):
+        CommandProject.__init__(self, "todo-noones")
+
+    def get_report(self, config, client, options, args):
+        return ReportToDoListNoones(client,
+                                    bots=config.get_organization_bots(),
+                                    projects=self.get_projects(config, options))

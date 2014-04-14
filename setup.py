@@ -117,6 +117,10 @@ setup(
         "scripts/gerrymander-watch",
         "scripts/gerrymander-patchreviewstats",
         "scripts/gerrymander-changes",
+        "scripts/gerrymander-todo-anyones",
+        "scripts/gerrymander-todo-mine",
+        "scripts/gerrymander-todo-noones",
+        "scripts/gerrymander-todo-others",
         ]),
     packages=["gerrymander"],
     cmdclass = {

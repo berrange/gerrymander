@@ -313,3 +313,109 @@ class ReportChanges(ReportBaseChange):
         query.run(querycb)
 
         return changes
+
+
+class ReportToDoList(ReportBaseChange):
+
+    def __init__(self, client, projects=[], reviewers=[]):
+        ReportBaseChange.__init__(self, client)
+
+        self.projects = projects
+        self.reviewers = reviewers
+
+    def filter(self, change):
+        return True
+
+    def generate(self):
+        query = OperationQuery(self.client,
+                               {
+                                   "project": self.projects,
+                                   "status": [ OperationQuery.STATUS_OPEN ],
+                                   "reviewer": self.reviewers,
+                               },
+                               patches=OperationQuery.PATCHES_ALL,
+                               approvals=True)
+
+        changes = []
+
+        def querycb(change):
+            if self.filter(change):
+                changes.append(change)
+
+        query.run(querycb)
+
+        return changes
+
+
+
+
+class ReportToDoListMine(ReportToDoList):
+
+    def __init__(self, client, username, projects=[]):
+        '''
+        Report to provide a list of changes 'username' has
+        reviewed an older version of the patch, and needs
+        to provide feedback on latest version
+        '''
+        ReportToDoList.__init__(self, client,
+                                projects,
+                                reviewers=[ username ])
+        self.username = username
+
+    def filter(self, change):
+        if not change.has_current_reviewers([self.username]):
+            return True
+        return False
+
+
+class ReportToDoListOthers(ReportToDoList):
+    def __init__(self, client, username, bots=[], projects=[]):
+        '''
+        Report to provide a list of changes where 'username' has
+        never reviewed, but at least one other non-bot user has
+        provided review
+        '''
+        ReportToDoList.__init__(self, client,
+                                projects,
+                                reviewers=[ "!", username ])
+        self.bots = bots
+
+    def filter(self, change):
+        # allchanges contains changes where 'username' has
+        # not reviewed any version of the patch. We want to
+        # filter out changes which only have bots, or have
+        # no reviewers at all.
+        if change.has_any_other_reviewers(self.bots):
+            return True
+
+
+class ReportToDoListAnyones(ReportToDoList):
+
+    def __init__(self, client, bots=[], projects=[]):
+        '''
+        Report to provide a list of changes where at least
+        one other non-bot user has provided review
+        '''
+        ReportToDoList.__init__(self, client,
+                                projects)
+        self.bots = bots
+
+    def filter(self, change):
+        if change.has_any_other_reviewers(self.bots):
+            return True
+
+
+class ReportToDoListNoones(ReportToDoList):
+
+    def __init__(self, client, bots=[], projects=[]):
+        '''
+        Report to provide a list of changes that no one
+        has ever reviewed
+        '''
+        ReportToDoList.__init__(self, client,
+                                projects)
+        self.bots = bots
+
+    def filter(self, change):
+        if not change.has_any_other_reviewers(self.bots):
+            return True
