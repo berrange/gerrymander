@@ -223,7 +223,7 @@ class ReportChanges(Report):
             if got_type not in vals:
                 vals[got_type] = []
             vals[got_type].append(approval.value)
-        keys = vals.keys()
+        keys = list(vals.keys())
         keys.sort(reverse=True)
         return " ".join(map(lambda val: "%s=%s" % (val,
                                                    ",".join(vals[val])), keys))
