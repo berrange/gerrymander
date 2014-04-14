@@ -88,7 +88,7 @@ class OperationQuery(OperationBase):
         def mycb(line):
             if 'rowCount' in line:
                 return
-            if 'error' in line:
+            if 'type' in line and line['type'] == "error":
                 raise Exception(line['message'])
 
             change = ModelChange.from_json(line)
