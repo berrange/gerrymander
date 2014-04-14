@@ -96,11 +96,12 @@ class ClientCachingLock(object):
 class ClientCaching(ClientLive):
 
     def __init__(self, hostname="review", port=None, username=None, keyfile=None,
-                 cachedir="cache", cachelifetime=86400):
+                 cachedir="cache", cachelifetime=86400, refresh=False):
         ClientLive.__init__(self, hostname, port, username, keyfile)
         self.cachedir = cachedir
         self.cachelifetime = cachelifetime
         self.lastpurge = None
+        self.refresh = refresh
 
         if not os.path.exists(self.cachedir):
             os.makedirs(self.cachedir)
@@ -139,7 +140,7 @@ class ClientCaching(ClientLive):
         m.update(args.encode("UTF-8"))
         LOG.debug("Finding cache for args '%s'" % args)
         file = self.cachedir + "/" + m.hexdigest() + ".json"
-        if not os.path.exists(file):
+        if not os.path.exists(file) or self.refresh:
             sp = self._run_async(argv)
             with open(file, "wb") as f:
                 while True:

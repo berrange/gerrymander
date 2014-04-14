@@ -226,6 +226,8 @@ class CommandCaching(Command):
         Command.add_options(self)
         self.add_option("--no-cache", action="store_true",
                         help="Disable use of gerrit query cache")
+        self.add_option("--refresh", action="store_true",
+                        help="Force refresh of the query cache")
 
     def get_client(self, config, options):
         if options.no_cache:
@@ -239,7 +241,8 @@ class CommandCaching(Command):
                                  config.get_server_username(),
                                  config.get_server_keyfile(),
                                  config.get_cache_directory(),
-                                 config.get_cache_lifetime())
+                                 config.get_cache_lifetime(),
+                                 options.refresh)
 
 
 class CommandWatch(Command):
