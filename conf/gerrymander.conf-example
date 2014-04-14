@@ -13,9 +13,14 @@
 # Directory where the results of gerry query commands
 # will be cached to avoid re-querying the server
 #directory=/home/berrange/.gerrymander.d/cache
-# Maximum amount of time to cache data for before
-# requerying gerrit. Defaults to 1 day
-#lifetime=86400
+# Maximum amount of time to cache data for commands
+# whose dataset is large & infrequently changing.
+# Defaults to 1 day
+#longlifetime=86400
+# Maximum amount of time to cache data for commands
+# whose dataset is frequently changing.
+# Defaults to 5 minutes
+#shortlifetime=300
 
 #[organization]
 # List the names of teams you use with gerrit. For

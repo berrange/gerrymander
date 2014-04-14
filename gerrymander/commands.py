@@ -83,10 +83,15 @@ class CommandConfig(object):
             return None
         return self.config.get("server", "keyfile")
 
-    def get_cache_lifetime(self):
-        if not self.config.has_option("cache", "lifetime"):
+    def get_cache_longlifetime(self):
+        if not self.config.has_option("cache", "longlifetime"):
             return 86400
         return self.config.get("cache", "lifetime")
+
+    def get_cache_shortlifetime(self):
+        if not self.config.has_option("cache", "shortlifetime"):
+            return 300
+        return self.config.get("cache", "shortlifetime")
 
     def get_cache_directory(self):
         if not self.config.has_option("cache", "directory"):
@@ -230,8 +235,9 @@ class Command(object):
 
 class CommandCaching(Command):
 
-    def __init__(self, name):
+    def __init__(self, name, longcache=False):
         Command.__init__(self, name)
+        self.longcache = longcache
 
     def add_options(self):
         Command.add_options(self)
@@ -247,13 +253,22 @@ class CommandCaching(Command):
                               config.get_server_username(),
                               config.get_server_keyfile())
         else:
-            return ClientCaching(config.get_server_hostname(),
-                                 config.get_server_port(),
-                                 config.get_server_username(),
-                                 config.get_server_keyfile(),
-                                 config.get_cache_directory(),
-                                 config.get_cache_lifetime(),
-                                 options.refresh)
+            if self.longcache:
+                return ClientCaching(config.get_server_hostname(),
+                                     config.get_server_port(),
+                                     config.get_server_username(),
+                                     config.get_server_keyfile(),
+                                     os.path.join(config.get_cache_directory(), "long"),
+                                     config.get_cache_longlifetime(),
+                                     options.refresh)
+            else:
+                return ClientCaching(config.get_server_hostname(),
+                                     config.get_server_port(),
+                                     config.get_server_username(),
+                                     config.get_server_keyfile(),
+                                     os.path.join(config.get_cache_directory(), "short"),
+                                     config.get_cache_shortlifetime(),
+                                     options.refresh)
 
 
 class CommandWatch(Command):
@@ -272,8 +287,8 @@ class CommandWatch(Command):
 
 class CommandReport(CommandCaching):
 
-    def __init__(self, name):
-        CommandCaching.__init__(self, name)
+    def __init__(self, name, longcache=False):
+        CommandCaching.__init__(self, name, longcache)
 
     def add_options(self):
         CommandCaching.add_options(self)
@@ -329,8 +344,8 @@ class CommandReport(CommandCaching):
 
 class CommandProject(CommandReport):
 
-    def __init__(self, name):
-        CommandReport.__init__(self, name)
+    def __init__(self, name, longcache=False):
+        CommandReport.__init__(self, name, longcache)
 
 
     def add_options(self):
@@ -379,7 +394,7 @@ class CommandProject(CommandReport):
 class CommandPatchReviewStats(CommandProject):
 
     def __init__(self):
-        CommandProject.__init__(self, "patchreviewstats")
+        CommandProject.__init__(self, "patchreviewstats", longcache=True)
         self.teams = {}
 
     def get_report(self, config, client, options, args):
