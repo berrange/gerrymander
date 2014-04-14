@@ -284,6 +284,7 @@ class ReportChanges(Report):
                                    "message": self.messages,
                                    "branch": self.branches,
                                    "status": self.status,
+                                   "reviewer": self.reviewers,
                                },
                                patches=OperationQuery.PATCHES_CURRENT,
                                approvals=True,
@@ -301,23 +302,8 @@ class ReportChanges(Report):
                             return True
             return False
 
-        def match_reviewers(change):
-            if len(self.reviewers) == 0:
-                return True
-
-            for user in self.reviewers:
-                for patch in change.patches:
-                    for approval in patch.approvals:
-                        if approval.user is None:
-                            continue
-                        if (approval.user.name == user or
-                            approval.user.username == user):
-                            return True
-            return False
-
         def querycb(change):
-            if (match_files(change) and
-                match_reviewers(change)):
+            if match_files(change):
                 changes.append(change)
 
         query.run(querycb)
