@@ -17,6 +17,7 @@
 import prettytable
 import logging
 import time
+import re
 
 from gerrymander.operations import OperationQuery
 from gerrymander.model import ModelApproval
