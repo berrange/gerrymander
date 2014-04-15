@@ -207,8 +207,8 @@ class ReportPatchReviewStats(Report):
                       "-1" : "flag-m1",
                       "1" : "flag-p1",
                       "2" : "flag-p2" }
-            cur = reviewers[reviewer]['votes'][votes[review.value]]
-            reviewers[reviewer]['votes'][votes[review.value]] = cur + 1
+            cur = reviewers[reviewer]['votes'][votes[str(review.value)]]
+            reviewers[reviewer]['votes'][votes[str(review.value)]] = cur + 1
 
         reviewers = [(k, v) for k, v in reviewers.items()]
         return reviewers
@@ -225,7 +225,7 @@ class ReportBaseChange(Report):
             got_type = approval.action[0:1].lower()
             if got_type not in vals:
                 vals[got_type] = []
-            vals[got_type].append(approval.value)
+            vals[got_type].append(str(approval.value))
         keys = list(vals.keys())
         keys.sort(reverse=True)
         return " ".join(map(lambda val: "%s=%s" % (val,
