@@ -49,6 +49,11 @@ class CommandConfig(object):
             return defvalue
         return self.config.get(section, name)
 
+    def get_option_int(self, section, name, defvalue=None):
+        if not self.config.has_option(section, name):
+            return defvalue
+        return int(self.config.get(section, name))
+
     def get_option_list(self, section, name, defvalue=None):
         if not self.config.has_option(section, name):
             return defvalue
@@ -131,78 +136,53 @@ class CommandConfig(object):
         value = self.config.get(section, key)
         return list(map(lambda x: x.strip(), value.split(",")))
 
+    def get_command_aliases(self):
+        if not self.config.has_option("commands", "aliases"):
+            return []
+        value = self.config.get("commands", "aliases")
+        return list(map(lambda x: x.strip(), value.split(",")))
+
+    def get_command_alias_basecmd(self, aliasname):
+        section = "alias-" + aliasname
+        return self.config.get(section, "basecmd")
+
+    def get_command_alias_help(self, aliasname):
+        section = "alias-" + aliasname
+        return self.config.get(section, "help")
+
 
 class Command(object):
 
-    def __init__(self, name):
+    def __init__(self, name, help):
         self.name = name
-        self.parser = argparse.ArgumentParser()
-        self.options = {}
+        self.help = help
 
-        self.add_options()
-
-    def add_option(self, *args, **kwargs):
-        option = self.parser.add_argument(*args, **kwargs)
-        self.options[option.dest] = [kwargs.get("action", None), option]
-
-    def add_options(self):
-        self.add_option("-c", "--config", default=os.path.expanduser("~/.gerrymander"),
-                        help=("Override config file (default %s)" %
-                              os.path.expanduser("~/.gerrymander")))
-        self.add_option("-d", "--debug",
-                        help="Display debugging information",
-                        action="store_true")
-        self.add_option("-q", "--quiet",
-                        help="Supress display of warnings",
-                        action="store_true")
-        self.add_option("-z", "--profile",
-                        help="Select command options set from config")
-
-    def is_config_option_set(self, options, name):
-        optioninfo = self.options[name]
-        action = optioninfo[0]
-        option = optioninfo[1]
-        value = getattr(options, name)
-        if getattr(options, name) == None:
-            return False
-
-        if action == "append":
-            if len(getattr(options, name)) == 0:
-                return False
-        elif action == "store_true":
-            if getattr(options, name) == False:
-                return False
-
-        return True
-
-    def set_config_option(self, config, options, name):
-        optioninfo = self.options[name]
-        action = optioninfo[0]
-        option = optioninfo[1]
-        value = getattr(options, name)
-
-        if self.is_config_option_set(options, name):
-            return
-
-        value = None
-        section =  "command-" + self.name
-        if options.profile is not None:
-            altsection =  "command-" + self.name + "-" + options.profile
-            if config.has_option(altsection, name):
-                section = altsection
-        if not config.has_option(section, name):
-            return
-
-        if action == "store_true":
-            setattr(options, name, config.get_option_bool(section, name))
-        elif action == "append":
-            setattr(options, name, config.get_option_list(section, name))
+    def add_option(self, parser, config, *args, **kwargs):
+        if args[0][0:1] == "-":
+            if args[0][0:2] == "--":
+                name = args[0][2:]
+            else:
+                name = args[1][2:]
         else:
-            setattr(options, name, config.get_option_string(section, name))
+            name = args[0]
 
-    def set_config_options(self, config, options):
-        for name in self.options.keys():
-            self.set_config_option(config, options, name)
+        section = "command-" + self.name
+        if config.has_option(section, name):
+            defvalue = kwargs["default"]
+            if type(defvalue) == list:
+                kwargs["default"] = config.get_option_list(section, name)
+            elif type(defvalue) == int:
+                kwargs["default"] = config.get_option_int(section, name)
+            elif type(defvalue) == bool:
+                kwargs["default"] = config.get_option_bool(section, name)
+            else:
+                kwargs["default"] = config.get_option_string(section, name)
+
+        parser.add_argument(*args, **kwargs)
+
+
+    def add_options(self, parser, config):
+        pass
 
     def get_client(self, config, options):
         return ClientLive(config.get_server_hostname(),
@@ -210,43 +190,28 @@ class Command(object):
                           config.get_server_username(),
                           config.get_server_keyfile())
 
-    def get_config(self, options):
-        return CommandConfig(options.config)
-
     def run(self, config, client, options):
         raise NotImplementedError("Subclass should override run method")
 
-    def execute(self, argv):
-        options = self.parser.parse_args(argv)
-        config = self.get_config(options)
-        self.set_config_options(config, options)
-
-        level = logging.WARNING
-        if options.debug:
-            level = logging.DEBUG
-        elif options.quiet:
-            level = logging.ERROR
-
-        logging.basicConfig(level=level,
-                            format='%(asctime)s %(levelname)s: %(message)s',
-                            stream=sys.stderr)
-
+    def execute(self, config, options):
         client = self.get_client(config, options)
+        self.run(config, client, options)
 
-        return self.run(config, client, options)
 
 
 class CommandCaching(Command):
 
-    def __init__(self, name, longcache=False):
-        Command.__init__(self, name)
+    def __init__(self, name, help, longcache=False):
+        Command.__init__(self, name, help)
         self.longcache = longcache
 
-    def add_options(self):
-        Command.add_options(self)
-        self.add_option("--no-cache", action="store_true",
+    def add_options(self, parser, config):
+        Command.add_options(self, parser, config)
+        self.add_option(parser, config,
+                        "--no-cache", action="store_true",
                         help="Disable use of gerrit query cache")
-        self.add_option("--refresh", action="store_true",
+        self.add_option(parser, config,
+                        "--refresh", action="store_true",
                         help="Force refresh of the query cache")
 
     def get_client(self, config, options):
@@ -276,8 +241,8 @@ class CommandCaching(Command):
 
 class CommandWatch(Command):
 
-    def __init__(self):
-        Command.__init__(self, "watch")
+    def __init__(self, name="watch", help="Watch incoming changes"):
+        Command.__init__(self, name, help)
 
     def run(self, config, client, options):
         watch = OperationWatch(client)
@@ -290,18 +255,21 @@ class CommandWatch(Command):
 
 class CommandReport(CommandCaching):
 
-    def __init__(self, name, longcache=False):
-        CommandCaching.__init__(self, name, longcache)
+    def __init__(self, name, help, longcache=False):
+        CommandCaching.__init__(self, name, help, longcache)
 
-    def add_options(self):
-        CommandCaching.add_options(self)
+    def add_options(self, parser, config):
+        CommandCaching.add_options(self, parser, config)
 
-        self.add_option("-l", "--limit", default=None,
+        self.add_option(parser, config,
+                        "-l", "--limit", default=None,
                         help="Limit to N results")
 
-        self.add_option("--sort", default=None,
+        self.add_option(parser, config,
+                        "--sort", default=None,
                         help="Set the sort field")
-        self.add_option("--field", default=[],
+        self.add_option(parser, config,
+                        "--field", default=[],
                         action="append",
                         help="Display the named field")
 
@@ -347,22 +315,25 @@ class CommandReport(CommandCaching):
 
 class CommandProject(CommandReport):
 
-    def __init__(self, name, longcache=False):
-        CommandReport.__init__(self, name, longcache)
+    def __init__(self, name, help, longcache=False):
+        CommandReport.__init__(self, name, help, longcache)
 
 
-    def add_options(self):
-        CommandReport.add_options(self)
+    def add_options(self, parser, config):
+        CommandReport.add_options(self, parser, config)
 
-        self.add_option("-p", "--project", default=[],
+        self.add_option(parser, config,
+                        "-p", "--project", default=[],
                         action="append",
                         help="Gather information for project")
 
-        self.add_option("-g", "--group", default=[],
+        self.add_option(parser, config,
+                        "-g", "--group", default=[],
                         action="append",
                         help="Gather information for project group")
 
-        self.add_option("--all-groups", action="store_true",
+        self.add_option(parser, config,
+                        "--all-groups", action="store_true",
                         help="Report on changes from all project groups")
 
 
@@ -396,14 +367,15 @@ class CommandProject(CommandReport):
 
 class CommandPatchReviewStats(CommandProject):
 
-    def __init__(self):
-        CommandProject.__init__(self, "patchreviewstats", longcache=True)
+    def __init__(self, name="patchreviewstats", help="Statistics on patch review approvals"):
+        CommandProject.__init__(self, name, help, longcache=True)
         self.teams = {}
 
-    def add_options(self):
-        CommandProject.add_options(self)
+    def add_options(self, parser, config):
+        CommandProject.add_options(self, parser, config)
 
-        self.add_option("--days", default=30,
+        self.add_option(parser, config,
+                        "--days", default=30,
                         help="Set number of days history to consult")
 
     def get_report(self, config, client, options):
@@ -437,24 +409,33 @@ class CommandPatchReviewStats(CommandProject):
 
 class CommandChanges(CommandProject):
 
-    def __init__(self):
-        CommandProject.__init__(self, "changes")
+    def __init__(self, name="changes", help="Query project changes"):
+        CommandProject.__init__(self, name, help)
 
-    def add_options(self):
-        CommandProject.add_options(self)
+    def add_options(self, parser, config):
+        CommandProject.add_options(self, parser, config)
 
-        self.add_option("--status", action="append", default=[],
+        self.add_option(parser, config,
+                        "--status", action="append", default=[],
                         help="Filter based on status")
-        self.add_option("--reviewer", action="append", default=[],
+        self.add_option(parser, config,
+                        "--reviewer", action="append", default=[],
                         help="Filter based on reviewer")
-        self.add_option("--branch", action="append", default=[],
+        self.add_option(parser, config,
+                        "--branch", action="append", default=[],
                         help="Filter based on branch")
-        self.add_option("--message", action="append", default=[],
+        self.add_option(parser, config,
+                        "--message", action="append", default=[],
                         help="Filter based on message")
-        self.add_option("--owner", action="append", default=[],
+        self.add_option(parser, config,
+                        "--owner", action="append", default=[],
                         help="Filter based on owner")
-        self.add_option("--approval", action="append", default=[],
+        self.add_option(parser, config,
+                        "--approval", action="append", default=[],
                         help="Filter based on approval")
+        self.add_option(parser, config,
+                        "file", default=[], nargs="*",
+                        help="File name matches")
 
     def get_report(self, config, client, options):
         return ReportChanges(client,
@@ -465,12 +446,12 @@ class CommandChanges(CommandProject):
                              messages=options.message,
                              owners=options.owner,
                              approvals=options.approval,
-                             files=args)
+                             files=options.file)
 
 class CommandToDoMine(CommandProject):
 
-    def __init__(self):
-        CommandProject.__init__(self, "todo-mine")
+    def __init__(self, name="todo-mine", help="List of changes I've looked at before"):
+        CommandProject.__init__(self, name, help)
 
 
     def get_report(self, config, client, options):
@@ -485,8 +466,8 @@ class CommandToDoMine(CommandProject):
 
 class CommandToDoOthers(CommandProject):
 
-    def __init__(self):
-        CommandProject.__init__(self, "todo-others")
+    def __init__(self, name="todo-others", help="List of changes I've not looked at before"):
+        CommandProject.__init__(self, name, help)
 
     def get_report(self, config, client, options):
         username = config.get_server_username()
@@ -500,8 +481,8 @@ class CommandToDoOthers(CommandProject):
 
 class CommandToDoAnyones(CommandProject):
 
-    def __init__(self):
-        CommandProject.__init__(self, "todo-anyones")
+    def __init__(self, name="todo-anyones", help="List of changes anyone has looked at"):
+        CommandProject.__init__(self, name, help)
 
     def get_report(self, config, client, options):
         return ReportToDoListAnyones(client,
@@ -511,10 +492,96 @@ class CommandToDoAnyones(CommandProject):
 
 class CommandToDoNoones(CommandProject):
 
-    def __init__(self):
-        CommandProject.__init__(self, "todo-noones")
+    def __init__(self, name="todo-noones", help="List of changes on one has looked at yet"):
+        CommandProject.__init__(self, name, help)
 
     def get_report(self, config, client, options):
         return ReportToDoListNoones(client,
                                     bots=config.get_organization_bots(),
                                     projects=self.get_projects(config, options))
+
+
+class CommandTool(object):
+
+    def __init__(self):
+        self.commands = {}
+
+    def add_options(self, parser):
+        parser.add_argument("-c", "--config", default=os.path.expanduser("~/.gerrymander"),
+                            help=("Override config file (default %s)" %
+                                  os.path.expanduser("~/.gerrymander")))
+        parser.add_argument("-d", "--debug",
+                            help="Display debugging information",
+                            action="store_true")
+        parser.add_argument("-q", "--quiet",
+                            help="Supress display of warnings",
+                            action="store_true")
+
+    def add_command(self, subparser, config, cmdclass, name=None, help=None):
+        cmd = cmdclass()
+        if name is not None:
+            cmd.name = name
+        if help is not None:
+            cmd.help = help
+
+        parser = subparser.add_parser(cmd.name, help=cmd.help)
+        cmd.add_options(parser, config)
+        parser.set_defaults(func=cmd.execute)
+        self.commands[cmd.name] = cmd
+
+    def add_default_commands(self, subparser, config):
+        self.add_command(subparser, config, CommandWatch)
+        self.add_command(subparser, config, CommandToDoNoones)
+        self.add_command(subparser, config, CommandToDoAnyones)
+        self.add_command(subparser, config, CommandToDoMine)
+        self.add_command(subparser, config, CommandToDoOthers)
+        self.add_command(subparser, config, CommandPatchReviewStats)
+        self.add_command(subparser, config, CommandChanges)
+
+    def add_config_commands(self, subparser, config):
+        aliases = config.get_command_aliases()
+        for alias in aliases:
+            basecmd = config.get_command_alias_basecmd(alias)
+            help = config.get_command_alias_help(alias)
+
+            if basecmd not in self.commands:
+                raise Exception("Unknown base command '%s'" % basecmd)
+
+            klass = type(self.commands[basecmd])
+            self.add_command(subparser, config, klass, alias, help)
+
+    def get_config(self, options):
+        return CommandConfig(options.config)
+
+    def execute(self, argv):
+        miniparser = argparse.ArgumentParser(add_help=False)
+        miniparser.add_argument("-c", "--config", default=os.path.expanduser("~/.gerrymander"),
+                                help=("Override config file (default %s)" %
+                                      os.path.expanduser("~/.gerrymander")))
+        options, remaining = miniparser.parse_known_args(argv)
+
+        config = CommandConfig(options.config)
+
+
+        parser = argparse.ArgumentParser(description="Gerrymander client")
+        self.add_options(parser)
+        subparser = parser.add_subparsers()
+        subparser.required = True
+        subparser.dest = "command"
+        self.add_default_commands(subparser, config)
+        self.add_config_commands(subparser, config)
+
+        options = parser.parse_args(argv)
+
+
+        level = logging.WARNING
+        if options.debug:
+            level = logging.DEBUG
+        elif options.quiet:
+            level = logging.ERROR
+
+        logging.basicConfig(level=level,
+                            format='%(asctime)s %(levelname)s: %(message)s',
+                            stream=sys.stderr)
+
+        options.func(config, options)

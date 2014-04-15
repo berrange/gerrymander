@@ -15,11 +15,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from gerrymander.commands import CommandPatchReviewStats
+from gerrymander.commands import CommandTool
 
 import sys
 
-sys.exit(CommandPatchReviewStats().execute(sys.argv))
-
-#print ('\nTotal reviews: %d' % total)
-#print ('Total reviewers: %d' % len(reviewers))
+sys.exit(CommandTool().execute(sys.argv[1:]))

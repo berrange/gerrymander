@@ -58,6 +58,22 @@
 #projects = openstack/neutron, openstack/python-neutronclient, openstack/netconn-api
 #team-core = arosen, amotoki, danwent, emagana, garyk, markmcclain, maru, nati-ueno, rkukura, salvatore-orlando, snaiksat, gongysh
 
+# It is possible to define new commands as aliases for
+# existing commands
+#[commands]
+#aliases=nova-stats
+
+# This is an alias of 'changes' command. The custom
+# settings for the command are listed in a later
+# section [command-nova-stats], as for any normal
+# command
+#[alias-nova-changes]
+# The name of the original command
+#basecmd=changes
+# A description for the new command
+#description=Nova open changes
+
+
 # Each command line tool can have the default values for
 # its command line flags set here.
 #   - string flags - just the string value
@@ -65,24 +81,17 @@
 #   - list flags - comma separated
 #[command-patchreviewstats]
 #group=nova
-#project=openstack/nova, openstack/compute-api
 #debug=False
 
-# It is possible to define multiple "profiles" for each
-# named command, with a different set of default settings
-# for each profile. This provides the default profile
 #[command-changes]
-#group=nova
 #sort=createdOn
 #branch=master
 #field=url, branch, owner, subject:50, lastUpdated, createdOn, approvals
 #status=open
 
-# And this is a profile called 'specs' eg you can run
-# with  gerrymander-changes --profile specs
-#[command-changes-specs]
-#project=openstack/nova-specs
-#sort=createdOn
-#branch=master
-#field=url, owner, subject:80, approvals
-#status=open
+# Default values for the alias of changes we defined earlier
+# Here we just set the group to be 'nova'. So now intead
+# of running 'gerrymander changes --group nova' we can just
+# run 'gerrymander nova-changes'
+#[command-nova-changes]
+#group=nova

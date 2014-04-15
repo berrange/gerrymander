@@ -159,13 +159,7 @@ setup(
     license="ASL 2.0",
     url="http://gitorious.org",
     scripts=([
-        "scripts/gerrymander-watch",
-        "scripts/gerrymander-patchreviewstats",
-        "scripts/gerrymander-changes",
-        "scripts/gerrymander-todo-anyones",
-        "scripts/gerrymander-todo-mine",
-        "scripts/gerrymander-todo-noones",
-        "scripts/gerrymander-todo-others",
+        "scripts/gerrymander",
         ]),
     packages=["gerrymander"],
     cmdclass = {
