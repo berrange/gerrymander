@@ -4,3 +4,196 @@
 The Gerrymander package provides a set of Python2 / Python3 compatible
 modules for interacting with Gerrit, along with a set of command line
 programs for various useful operations.
+
+License
+=======
+
+The package is distributed under the terms of the Apache License,
+version 2.0. See the LICENSE file for full copying terms.
+
+Usage instructions
+==================
+
+Server configuration
+--------------------
+
+The out of the box config assumes that you have a $HOME/.ssh/config
+file configured with a server alias called "review" that points to
+your gerrit instance. For example the following config is possible
+
+  Host review
+    Hostname review.openstack.org
+    User berrange
+    Port 29418
+
+Alternatively, create a configuration file $HOME/.gerrymander
+containing
+
+  [server]
+  hostname=review.openstack.org
+  username=berrange
+  port=29418
+
+
+Command listing
+---------------
+
+To get a list of all available commands just invoke the program
+with the '-h' argument
+
+  $ gerrymander
+  usage: gerrymander [-h] [-c CONFIG] [-d] [-q]
+
+                   {watch,todo-noones,todo-anyones,todo-mine,todo-others,patchreviewstats,changes}
+                   ...
+
+  Gerrymander client
+
+  positional arguments:
+    {watch,todo-noones,todo-anyones,todo-mine,todo-others,patchreviewstats,changes}
+      watch               Watch incoming changes
+      todo-noones         List of changes on one has looked at yet
+      todo-anyones        List of changes anyone has looked at
+      todo-mine           List of changes I've looked at before
+      todo-others         List of changes I've not looked at before
+      patchreviewstats    Statistics on patch review approvals
+      changes             Query project changes
+
+  ...snip...
+
+
+Command invocation
+------------------
+
+To use the 'changes' command to see all open changes by a particular user
+
+  $ gerrymander  changes --project openstack/nova --owner russellb --status open
+  +--------+------------------------------------+----------+-----------------------------------+---------+---------+--------------+
+  | Status | URL                                | Owner    | Subject                           | Created | Updated | Approvals    |
+  +--------+------------------------------------+----------+-----------------------------------+---------+---------+--------------+
+  | NEW    | https://review.openstack.org/84254 | russellb | Drop support for conductor 1.x... | 14 days | 4 hours | v=-1,1,1 c=1 |
+  | NEW    | https://review.openstack.org/84430 | russellb | Drop support for scheduler 2.x... | 14 days | 4 hours | v=-1,1,1 c=1 |
+  | NEW    | https://review.openstack.org/86982 | russellb | ec2: remove db.instance_system... | 3 days  | 4 hours | v=1,1,1 c=1  |
+  | NEW    | https://review.openstack.org/86985 | russellb | ec2: get services using Servic... | 3 days  | 4 hours | v=1,1,1 c=1  |
+  | NEW    | https://review.openstack.org/86999 | russellb | ec2: use SecurityGroup object     | 3 days  | 4 hours | v=1,1,1 c=1  |
+  | NEW    | https://review.openstack.org/87018 | russellb | ec2: use BlockDeviceMappingLis... | 3 days  | 4 hours | v=1,1,1 c=1  |
+  | NEW    | https://review.openstack.org/87048 | russellb | compute.rpcapi: remove havana ... | 3 days  | 3 days  | v=-1,1,1     |
+  +--------+------------------------------------+----------+-----------------------------------+---------+---------+--------------+
+
+
+For this command, the set of columns displayed can be customized via the '--field' argument:
+
+  $ gerrymander  changes --project openstack/nova --owner russellb --status open --field url --field subject:50 --field lastUpdated --field approvals
+  +------------------------------------+-----------------------------------------------+---------+--------------+
+  | URL                                | Subject                                       | Updated | Approvals    |
+  +------------------------------------+-----------------------------------------------+---------+--------------+
+  | https://review.openstack.org/84254 | Drop support for conductor 1.x rpc interface  | 4 hours | v=-1,1,1 c=1 |
+  | https://review.openstack.org/84430 | Drop support for scheduler 2.x rpc interface  | 4 hours | v=-1,1,1 c=1 |
+  | https://review.openstack.org/86982 | ec2: remove db.instance_system_metadata usage | 4 hours | v=1,1,1 c=1  |
+  | https://review.openstack.org/86985 | ec2: get services using ServiceList object    | 4 hours | v=1,1,1 c=1  |
+  | https://review.openstack.org/86999 | ec2: use SecurityGroup object                 | 4 hours | v=1,1,1 c=1  |
+  | https://review.openstack.org/87018 | ec2: use BlockDeviceMappingList object        | 4 hours | v=1,1,1 c=1  |
+  | https://review.openstack.org/87048 | compute.rpcapi: remove havana compat          | 3 days  | v=-1,1,1     |
+  +------------------------------------+-----------------------------------------------+---------+--------------+
+
+
+Default arguments
+-----------------
+
+Any command line argument can also be set in the configuration file. For example, given
+a command called "changes", a config file section called "command-changes" can be used
+to set default options. To make the above choice of fields permanent update the config
+file to contain
+
+  [command-changes]
+  field = url, subject:50, lastUpdated, approvals
+
+
+Custom command aliases
+----------------------
+
+Imagine that there are a couple of different sets of arguments that are commonly used
+with a command. For example, in order to repeat that query above for 2 different users.
+It is possible to define new commands that are aliases for existing commands. So to
+take the above example and create commands 'russell-nova-changes' & 'daniel-nova-changes'
+update the config file to contain
+
+  [commands]
+  aliases = russell-nova-changes, daniel-nova-changes
+
+  [alias-russell-nova-changes]
+  basecmd=changes
+  help=Russell's open changes to nova
+
+  [alias-daniel-nova-changes]
+  basecmd=changes
+  help=Daniel's open changes to nova
+
+  [command-russell-nova-changes]
+  project=openstack/nova
+  status=open
+  owner=russellb
+  field = url, subject:50, lastUpdated, approvals
+
+  [command-daniel-nova-changes]
+  project=openstack/nova
+  status=open
+  owner=berrange
+  field = url, subject:50, lastUpdated, approvals
+
+
+Project groups
+--------------
+
+It is common to have multiple different projects defined in gerrit
+which are all related to one team of people. There are also commonly
+set teams of people working on projects and often automated robot
+users to be filtered from some reports. It is possible to define
+orgnaization teams and project groups in the configuration file,
+and use those in place of project names with many commands.
+
+For example, to define an organization with two projects, each with
+a "core" teamm of members and some robot accounts
+
+  [organization]
+  teams = core
+  groups = nova, neutron
+  bots=jenkins, turbo-hipster
+
+
+  [group-nova]
+  projects = openstack/nova, openstack/python-novaclient
+  team-core = danms, russellb, berrange
+
+  [group-neutron]
+  projects = openstack/neutron, openstack/python-neutronclient
+  team-core = arosen, amotoki, danwent
+
+
+Now these groups can be referenced in commands
+
+  $ gerrymander changes -g nova --status open
+  +------------------------------------+-------------------------------------------------------+----------+------------------------------+
+  | URL                                | Subject                                               | Updated  | Approvals                    |
+  +------------------------------------+-------------------------------------------------------+----------+------------------------------+
+  | https://review.openstack.org/15104 | Nova option to delete the quota for an specific re... | 5 days   | v=1,1 c=2,-2,1,1             |
+  | https://review.openstack.org/38158 | Add Pcloud support (whole host allocation)            | 171 days | v=1                          |
+  | https://review.openstack.org/43822 | Get quota and usage from neutron for limit APIs       | 13 days  | v=1,1,1 c=1                  |
+  | https://review.openstack.org/44674 | Adding Read-Only volume attaching support to Nova ... | 221 days | v=1                          |
+  | https://review.openstack.org/51132 | glance plugin should not upload on unauthorised       | 5 days   | v=-1,1 c=1,-1,-1,1,-1        |
+  | https://review.openstack.org/52687 | VMware: create utility functions                      | 7 hours  | v=1,1,1 c=1,1,1              |
+  | https://review.openstack.org/53746 | Fix CPU compare check bug in live migration           | 10 hours | v=1,1,1 c=-1                 |
+  | https://review.openstack.org/56812 | XenAPI: disable/enable host will be failed when us... | 32 days  | v=1,1                        |
+  ...snip...
+
+
+Source repository
+=================
+
+The master repository for the codebase is
+
+   https://github.com/berrange/gerrymander
+
+File bug reports in github, or send pull requests for features.
+
+-- End
