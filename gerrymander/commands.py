@@ -216,8 +216,8 @@ class Command(object):
     def run(self, config, client, options):
         raise NotImplementedError("Subclass should override run method")
 
-    def execute(self):
-        options = self.parser.parse_args()
+    def execute(self, argv):
+        options = self.parser.parse_args(argv)
         config = self.get_config(options)
         self.set_config_options(config, options)
 

@@ -19,4 +19,4 @@ from gerrymander.commands import CommandToDoNoones
 
 import sys
 
-sys.exit(CommandToDoNoones().execute())
+sys.exit(CommandToDoNoones().execute(sys.argv))

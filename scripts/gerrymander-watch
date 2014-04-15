@@ -19,4 +19,4 @@ import sys
 
 from gerrymander.commands import CommandWatch
 
-sys.exit(CommandWatch().execute())
+sys.exit(CommandWatch().execute(sys.argv))

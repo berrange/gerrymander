@@ -19,4 +19,4 @@ from gerrymander.commands import CommandChanges
 
 import sys
 
-sys.exit(CommandChanges().execute())
+sys.exit(CommandChanges().execute(sys.argv))
