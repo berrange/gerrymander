@@ -27,7 +27,7 @@ import getpass
 import os
 import logging
 import sys
-import optparse
+import argparse
 
 try:
     import configparser
@@ -136,15 +136,16 @@ class Command(object):
 
     def __init__(self, name):
         self.name = name
-        self.parser = None
+        self.parser = argparse.ArgumentParser()
         self.options = {}
 
+        self.add_options()
+
     def add_option(self, *args, **kwargs):
-        option = self.parser.add_option(*args, **kwargs)
-        self.options[option.dest] = option
+        option = self.parser.add_argument(*args, **kwargs)
+        self.options[option.dest] = [kwargs.get("action", None), option]
 
     def add_options(self):
-        self.parser = optparse.OptionParser()
         self.add_option("-c", "--config", default=os.path.expanduser("~/.gerrymander"),
                         help=("Override config file (default %s)" %
                               os.path.expanduser("~/.gerrymander")))
@@ -158,22 +159,26 @@ class Command(object):
                         help="Select command options set from config")
 
     def is_config_option_set(self, options, name):
-        option = self.options[name]
+        optioninfo = self.options[name]
+        action = optioninfo[0]
+        option = optioninfo[1]
         value = getattr(options, name)
         if getattr(options, name) == None:
             return False
 
-        if option.action == "append":
+        if action == "append":
             if len(getattr(options, name)) == 0:
                 return False
-        elif option.action == "store_true":
+        elif action == "store_true":
             if getattr(options, name) == False:
                 return False
 
         return True
 
     def set_config_option(self, config, options, name):
-        option = self.options[name]
+        optioninfo = self.options[name]
+        action = optioninfo[0]
+        option = optioninfo[1]
         value = getattr(options, name)
 
         if self.is_config_option_set(options, name):
@@ -188,9 +193,9 @@ class Command(object):
         if not config.has_option(section, name):
             return
 
-        if option.action == "store_true":
+        if action == "store_true":
             setattr(options, name, config.get_option_bool(section, name))
-        elif option.action == "append":
+        elif action == "append":
             setattr(options, name, config.get_option_list(section, name))
         else:
             setattr(options, name, config.get_option_string(section, name))
@@ -208,13 +213,11 @@ class Command(object):
     def get_config(self, options):
         return CommandConfig(options.config)
 
-    def run(self, config, client, options, args):
+    def run(self, config, client, options):
         raise NotImplementedError("Subclass should override run method")
 
     def execute(self):
-        if self.parser is None:
-            self.add_options()
-        options, args = self.parser.parse_args()
+        options = self.parser.parse_args()
         config = self.get_config(options)
         self.set_config_options(config, options)
 
@@ -230,7 +233,7 @@ class Command(object):
 
         client = self.get_client(config, options)
 
-        return self.run(config, client, options, args)
+        return self.run(config, client, options)
 
 
 class CommandCaching(Command):
@@ -276,7 +279,7 @@ class CommandWatch(Command):
     def __init__(self):
         Command.__init__(self, "watch")
 
-    def run(self, config, client, options, args):
+    def run(self, config, client, options):
         watch = OperationWatch(client)
 
         def cb(event):
@@ -302,11 +305,11 @@ class CommandReport(CommandCaching):
                         action="append",
                         help="Display the named field")
 
-    def get_report(self, config, client, options, args):
+    def get_report(self, config, client, options):
         raise NotImplementedError("subclass must override get_query")
 
-    def run(self, config, client, options, args):
-        report = self.get_report(config, client, options, args)
+    def run(self, config, client, options):
+        report = self.get_report(config, client, options)
 
         limit = options.limit
         if limit is not None:
@@ -403,13 +406,13 @@ class CommandPatchReviewStats(CommandProject):
         self.add_option("--days", default=30,
                         help="Set number of days history to consult")
 
-    def get_report(self, config, client, options, args):
+    def get_report(self, config, client, options):
         return ReportPatchReviewStats(client,
                                       self.get_projects(config, options, True),
                                       int(options.days),
                                       self.teams)
 
-    def run(self, config, client, options, args):
+    def run(self, config, client, options):
         if options.all_groups:
             groups = config.get_organization_groups()
         else:
@@ -429,7 +432,7 @@ class CommandPatchReviewStats(CommandProject):
                 users = config.get_group_team_members(group, team)
                 self.teams[teamchars[team]].extend(users)
 
-        return CommandReport.run(self, config, client, options, args)
+        return CommandReport.run(self, config, client, options)
 
 
 class CommandChanges(CommandProject):
@@ -453,7 +456,7 @@ class CommandChanges(CommandProject):
         self.add_option("--approval", action="append", default=[],
                         help="Filter based on approval")
 
-    def get_report(self, config, client, options, args):
+    def get_report(self, config, client, options):
         return ReportChanges(client,
                              self.get_projects(config, options),
                              status=options.status,
@@ -470,7 +473,7 @@ class CommandToDoMine(CommandProject):
         CommandProject.__init__(self, "todo-mine")
 
 
-    def get_report(self, config, client, options, args):
+    def get_report(self, config, client, options):
         username = config.get_server_username()
         if username is None:
             username = getpass.getuser()
@@ -485,7 +488,7 @@ class CommandToDoOthers(CommandProject):
     def __init__(self):
         CommandProject.__init__(self, "todo-others")
 
-    def get_report(self, config, client, options, args):
+    def get_report(self, config, client, options):
         username = config.get_server_username()
         if username is None:
             username = getpass.getuser()
@@ -500,7 +503,7 @@ class CommandToDoAnyones(CommandProject):
     def __init__(self):
         CommandProject.__init__(self, "todo-anyones")
 
-    def get_report(self, config, client, options, args):
+    def get_report(self, config, client, options):
         return ReportToDoListAnyones(client,
                                      bots=config.get_organization_bots(),
                                      projects=self.get_projects(config, options))
@@ -511,7 +514,7 @@ class CommandToDoNoones(CommandProject):
     def __init__(self):
         CommandProject.__init__(self, "todo-noones")
 
-    def get_report(self, config, client, options, args):
+    def get_report(self, config, client, options):
         return ReportToDoListNoones(client,
                                     bots=config.get_organization_bots(),
                                     projects=self.get_projects(config, options))
