@@ -252,7 +252,59 @@ class CommandCaching(Command):
                                      options.refresh)
 
 
-class CommandWatch(Command):
+class CommandProject(Command):
+
+    def __init__(self, name, help):
+        super(CommandProject, self).__init__(name, help)
+
+
+    def add_options(self, parser, config):
+        super(CommandProject, self).add_options(parser, config)
+
+        self.add_option(parser, config,
+                        "-p", "--project", default=[],
+                        action="append",
+                        help="Gather information for project")
+
+        self.add_option(parser, config,
+                        "-g", "--group", default=[],
+                        action="append",
+                        help="Gather information for project group")
+
+        self.add_option(parser, config,
+                        "--all-groups", action="store_true",
+                        help="Report on changes from all project groups")
+
+
+    def get_projects(self, config, options, requireOne=False):
+        count = 0
+        if len(options.project) > 0:
+            count = count + 1
+        if len(options.group) > 0:
+            count = count + 1
+        if options.all_groups:
+            count = count + 1
+
+        if count > 1:
+            raise Exception("--project, --group and --all-groups are mutually exclusive")
+        if count == 0 and requireOne:
+            raise Exception("One of --project, --group or --all-groups is required")
+
+        if len(options.project) == 0:
+            projects = []
+            if options.all_groups:
+                groups = config.get_organization_groups()
+            else:
+                groups = options.group
+
+            for group in groups:
+                projects.extend(config.get_group_projects(group))
+            return projects
+        else:
+            return options.project
+
+
+class CommandWatch(CommandProject):
 
     def __init__(self, name="watch", help="Watch incoming changes"):
         super(CommandWatch, self).__init__(name, help)
@@ -306,8 +358,10 @@ class CommandWatch(Command):
         return ",".join(bits)
 
     @staticmethod
-    def format_event(event, bots, usecolor):
+    def format_event(event, bots, projects, usecolor):
         if event.is_user_in_list(bots):
+            return
+        if len(projects) > 0 and event.change.project not in projects:
             return
 
         change = event.change
@@ -351,9 +405,12 @@ class CommandWatch(Command):
         else:
             bots = config.get_organization_bots()
 
+        projects = self.get_projects(config, options)
+
         def cb(event):
             self.format_event(event,
                               bots,
+                              projects,
                               options.color)
 
         return watch.run(cb)
@@ -417,58 +474,6 @@ class CommandReport(Command):
 
         table = report.get_table(limit=limit)
         print (table)
-
-
-class CommandProject(Command):
-
-    def __init__(self, name, help):
-        super(CommandProject, self).__init__(name, help)
-
-
-    def add_options(self, parser, config):
-        super(CommandProject, self).add_options(parser, config)
-
-        self.add_option(parser, config,
-                        "-p", "--project", default=[],
-                        action="append",
-                        help="Gather information for project")
-
-        self.add_option(parser, config,
-                        "-g", "--group", default=[],
-                        action="append",
-                        help="Gather information for project group")
-
-        self.add_option(parser, config,
-                        "--all-groups", action="store_true",
-                        help="Report on changes from all project groups")
-
-
-    def get_projects(self, config, options, requireOne=False):
-        count = 0
-        if len(options.project) > 0:
-            count = count + 1
-        if len(options.group) > 0:
-            count = count + 1
-        if options.all_groups:
-            count = count + 1
-
-        if count > 1:
-            raise Exception("--project, --group and --all-groups are mutually exclusive")
-        if count == 0 and requireOne:
-            raise Exception("One of --project, --group or --all-groups is required")
-
-        if len(options.project) == 0:
-            projects = []
-            if options.all_groups:
-                groups = config.get_organization_groups()
-            else:
-                groups = options.group
-
-            for group in groups:
-                projects.extend(config.get_group_projects(group))
-            return projects
-        else:
-            return options.project
 
 
 class CommandPatchReviewStats(CommandProject, CommandCaching, CommandReport):
