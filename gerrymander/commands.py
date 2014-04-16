@@ -564,17 +564,19 @@ class CommandComments(CommandCaching):
         else:
             for comment in comments:
                 if comment.file is not None:
-                    print (format_color(
-                        "  %s: %s:%d" % (comment.reviewer.name,
-                                         comment.file,
-                                         comment.line),
-                        usecolor,
-                        styles=["bold"]))
+                    print ("  %s: (%s) %s:%d" %
+                           (format_color(comment.reviewer.name,
+                                         usecolor,
+                                         styles=["bold"]),
+                            comment.reviewer.username,
+                            comment.file,
+                            comment.line))
                 else:
-                    print (format_color(
-                        "  %s" % (comment.reviewer.name,),
-                        usecolor,
-                        styles=["bold"]))
+                    print ("  %s: (%s) %s:%d" %
+                           (format_color(comment.reviewer.name,
+                                         usecolor,
+                                         styles=["bold"]),
+                            comment.reviewer.username))
                 print ("")
                 print (CommandComments.wrap_text(comment.message, "  "))
                 print ("")
