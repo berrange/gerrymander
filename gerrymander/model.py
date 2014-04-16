@@ -376,9 +376,8 @@ class ModelEventChangeAbandon(ModelEvent):
     @staticmethod
     def from_json(data):
         change = ModelChange.from_json(data["change"])
-        patch = ModelPatch.from_json(data["patchSet"])
         user = ModelUser.from_json(data["abandoner"])
-        return ModelEventChangeAbandon(change, patch, user)
+        return ModelEventChangeAbandon(change, None, user)
 
 
 class ModelEventChangeRestore(ModelEvent):
@@ -389,6 +388,5 @@ class ModelEventChangeRestore(ModelEvent):
     @staticmethod
     def from_json(data):
         change = ModelChange.from_json(data["change"])
-        patch = ModelPatch.from_json(data["patchSet"])
         user = ModelUser.from_json(data["restorer"])
-        return ModelEventChangeRestore(change, patch, user)
+        return ModelEventChangeRestore(change, None, user)
