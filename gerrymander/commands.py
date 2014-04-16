@@ -154,6 +154,7 @@ class CommandConfig(object):
 class Command(object):
 
     def __init__(self, name, help):
+        super(Command, self).__init__()
         self.name = name
         self.help = help
 
@@ -202,11 +203,11 @@ class Command(object):
 class CommandCaching(Command):
 
     def __init__(self, name, help, longcache=False):
-        Command.__init__(self, name, help)
+        super(CommandCaching, self).__init__(name, help)
         self.longcache = longcache
 
     def add_options(self, parser, config):
-        Command.add_options(self, parser, config)
+        super(CommandCaching, self).add_options(parser, config)
         self.add_option(parser, config,
                         "--no-cache", action="store_true",
                         help="Disable use of gerrit query cache")
@@ -242,7 +243,7 @@ class CommandCaching(Command):
 class CommandWatch(Command):
 
     def __init__(self, name="watch", help="Watch incoming changes"):
-        Command.__init__(self, name, help)
+        super(CommandWatch, self).__init__(name, help)
 
     def run(self, config, client, options):
         watch = OperationWatch(client)
@@ -256,10 +257,10 @@ class CommandWatch(Command):
 class CommandReport(CommandCaching):
 
     def __init__(self, name, help, longcache=False):
-        CommandCaching.__init__(self, name, help, longcache)
+        super(CommandReport, self).__init__(name, help, longcache)
 
     def add_options(self, parser, config):
-        CommandCaching.add_options(self, parser, config)
+        super(CommandReport, self).add_options(parser, config)
 
         self.add_option(parser, config,
                         "-l", "--limit", default=None,
@@ -316,11 +317,11 @@ class CommandReport(CommandCaching):
 class CommandProject(CommandReport):
 
     def __init__(self, name, help, longcache=False):
-        CommandReport.__init__(self, name, help, longcache)
+        super(CommandProject, self).__init__(name, help, longcache)
 
 
     def add_options(self, parser, config):
-        CommandReport.add_options(self, parser, config)
+        super(CommandProject, self).add_options(parser, config)
 
         self.add_option(parser, config,
                         "-p", "--project", default=[],
@@ -368,11 +369,11 @@ class CommandProject(CommandReport):
 class CommandPatchReviewStats(CommandProject):
 
     def __init__(self, name="patchreviewstats", help="Statistics on patch review approvals"):
-        CommandProject.__init__(self, name, help, longcache=True)
+        super(CommandPatchReviewStats, self).__init__(name, help, longcache=True)
         self.teams = {}
 
     def add_options(self, parser, config):
-        CommandProject.add_options(self, parser, config)
+        super(CommandPatchReviewStats, self).add_options(parser, config)
 
         self.add_option(parser, config,
                         "--days", default=30,
@@ -410,10 +411,10 @@ class CommandPatchReviewStats(CommandProject):
 class CommandChanges(CommandProject):
 
     def __init__(self, name="changes", help="Query project changes"):
-        CommandProject.__init__(self, name, help)
+        super(CommandChanges, self).__init__(name, help)
 
     def add_options(self, parser, config):
-        CommandProject.add_options(self, parser, config)
+        super(CommandChanges, self).add_options(parser, config)
 
         self.add_option(parser, config,
                         "--status", action="append", default=[],
@@ -451,7 +452,7 @@ class CommandChanges(CommandProject):
 class CommandToDoMine(CommandProject):
 
     def __init__(self, name="todo-mine", help="List of changes I've looked at before"):
-        CommandProject.__init__(self, name, help)
+        super(CommandToDoMine, self).__init__(name, help)
 
 
     def get_report(self, config, client, options):
@@ -467,7 +468,7 @@ class CommandToDoMine(CommandProject):
 class CommandToDoOthers(CommandProject):
 
     def __init__(self, name="todo-others", help="List of changes I've not looked at before"):
-        CommandProject.__init__(self, name, help)
+        super(CommandToDoOthers, self).__init__(name, help)
 
     def get_report(self, config, client, options):
         username = config.get_server_username()
@@ -482,7 +483,7 @@ class CommandToDoOthers(CommandProject):
 class CommandToDoAnyones(CommandProject):
 
     def __init__(self, name="todo-anyones", help="List of changes anyone has looked at"):
-        CommandProject.__init__(self, name, help)
+        super(CommandToDoAnyones, self).__init__(name, help)
 
     def get_report(self, config, client, options):
         return ReportToDoListAnyones(client,
@@ -493,7 +494,7 @@ class CommandToDoAnyones(CommandProject):
 class CommandToDoNoones(CommandProject):
 
     def __init__(self, name="todo-noones", help="List of changes on one has looked at yet"):
-        CommandProject.__init__(self, name, help)
+        super(CommandToDoNoones, self).__init__(name, help)
 
     def get_report(self, config, client, options):
         return ReportToDoListNoones(client,

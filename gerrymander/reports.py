@@ -271,7 +271,7 @@ class ReportChanges(ReportBaseChange):
     def __init__(self, client, projects=[], owners=[],
                  status=[], messages=[], branches=[], reviewers=[],
                  approvals=[], files=[]):
-        ReportBaseChange.__init__(self, client)
+        super(ReportChanges, self).__init__(client)
         self.projects = projects
         self.owners = owners
         self.status = status
@@ -323,7 +323,7 @@ class ReportChanges(ReportBaseChange):
 class ReportToDoList(ReportBaseChange):
 
     def __init__(self, client, projects=[], reviewers=[]):
-        ReportBaseChange.__init__(self, client)
+        super(ReportToDoList, self).__init__(client)
 
         self.projects = projects
         self.reviewers = reviewers
@@ -362,9 +362,9 @@ class ReportToDoListMine(ReportToDoList):
         reviewed an older version of the patch, and needs
         to provide feedback on latest version
         '''
-        ReportToDoList.__init__(self, client,
-                                projects,
-                                reviewers=[ username ])
+        super(ReportToDoListMine, self).__init__(client,
+                                                 projects,
+                                                 reviewers=[ username ])
         self.username = username
 
     def filter(self, change):
@@ -380,9 +380,9 @@ class ReportToDoListOthers(ReportToDoList):
         never reviewed, but at least one other non-bot user has
         provided review
         '''
-        ReportToDoList.__init__(self, client,
-                                projects,
-                                reviewers=[ "!", username ])
+        super(ReportToDoListOthers, self).__init__(client,
+                                                   projects,
+                                                   reviewers=[ "!", username ])
         self.bots = bots
 
     def filter(self, change):
@@ -401,8 +401,8 @@ class ReportToDoListAnyones(ReportToDoList):
         Report to provide a list of changes where at least
         one other non-bot user has provided review
         '''
-        ReportToDoList.__init__(self, client,
-                                projects)
+        super(ReportToDoListAnyones, self).__init__(client,
+                                                    projects)
         self.bots = bots
 
     def filter(self, change):
@@ -417,8 +417,8 @@ class ReportToDoListNoones(ReportToDoList):
         Report to provide a list of changes that no one
         has ever reviewed
         '''
-        ReportToDoList.__init__(self, client,
-                                projects)
+        super(ReportToDoListNoones, self).__init__(client,
+                                                   projects)
         self.bots = bots
 
     def filter(self, change):

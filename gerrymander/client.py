@@ -97,7 +97,7 @@ class ClientCaching(ClientLive):
 
     def __init__(self, hostname="review", port=None, username=None, keyfile=None,
                  cachedir="cache", cachelifetime=86400, refresh=False):
-        ClientLive.__init__(self, hostname, port, username, keyfile)
+        super(ClientCaching, self).__init__(hostname, port, username, keyfile)
         self.cachedir = cachedir
         self.cachelifetime = cachelifetime
         self.lastpurge = None
