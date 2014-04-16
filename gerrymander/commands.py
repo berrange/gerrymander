@@ -24,6 +24,12 @@ from gerrymander.reports import ReportToDoListOthers
 from gerrymander.reports import ReportToDoListAnyones
 from gerrymander.reports import ReportToDoListNoones
 from gerrymander.format import format_color
+from gerrymander.model import ModelEventCommentAdd
+from gerrymander.model import ModelEventPatchCreate
+from gerrymander.model import ModelEventChangeMerge
+from gerrymander.model import ModelEventChangeAbandon
+from gerrymander.model import ModelEventChangeRestore
+from gerrymander.model import ModelApproval
 
 import getpass
 import os
@@ -251,11 +257,104 @@ class CommandWatch(Command):
     def __init__(self, name="watch", help="Watch incoming changes"):
         super(CommandWatch, self).__init__(name, help)
 
+    def add_options(self, parser, config):
+        super(CommandWatch, self).add_options(parser, config)
+
+        self.add_option(parser, config,
+                        "--color", default=False, action="store_true",
+                        help="Use terminal color highlighting")
+        self.add_option(parser, config,
+                        "--all", default=False, action="store_true",
+                        help="Don't filter list of comments to strip bots")
+
+    @staticmethod
+    def wrap_text(message, indent="", width=78):
+        lines = textwrap.wrap(message, width)
+        return "\n".join(map(lambda x: indent + x, lines))
+
+    @staticmethod
+    def format_comment(comment, user, usecolor):
+        if comment == "":
+            return
+        print ("  %s (%s) wrote:" % (format_color(user.name,
+                                                  usecolor,
+                                                  styles=["bold"]),
+                                     user.username))
+        print ("")
+        print (CommandComments.wrap_text(comment, "  "))
+
+    @staticmethod
+    def format_approvals(approvals):
+        bits = []
+        for approval in approvals:
+            if approval.action == ModelApproval.ACTION_APPROVED and approval.value > 0:
+                bits.append("+A")
+            elif approval.action == ModelApproval.ACTION_REVIEWED:
+                if approval.value > 0:
+                    bits.append("R+" + str(approval.value))
+                elif approval.value < 0:
+                    bits.append("R" + str(approval.value))
+                else:
+                    bits.append("R=0")
+            elif approval.action == ModelApproval.ACTION_VERIFIED:
+                if approval.value > 0:
+                    bits.append("V+" + str(approval.value))
+                elif approval.value < 0:
+                    bits.append("V" + str(approval.value))
+                else:
+                    bits.append("V=0")
+        return ",".join(bits)
+
+    @staticmethod
+    def format_event(event, bots, usecolor):
+        if event.is_user_in_list(bots):
+            return
+
+        change = event.change
+        print (format_color("Change %s (%s)" % (change.url, change.id),
+                            usecolor,
+                            fg="red",
+                            styles=["bold"]))
+        print ("")
+        print ("  Project: %s" % change.project)
+        print ("  Subject: %s" % change.subject)
+        if type(event) == ModelEventChangeRestore:
+            print ("   Action: %s" % format_color("change restored", styles=["bold"]))
+        elif type(event) == ModelEventChangeAbandon:
+            print ("   Action: %s" % format_color("change abandoned", styles=["bold"]))
+        elif type(event) == ModelEventChangeMerge:
+            print ("   Action: %s" % format_color("change merged", styles=["bold"]))
+        elif type(event) == ModelEventCommentAdd:
+            print ("   Action: %s" % format_color("comment added", styles=["bold"]))
+            if len(event.approvals) > 0:
+                print ("    Votes: %s" %
+                       format_color(CommandWatch.format_approvals(event.approvals),
+                                    usecolor,
+                                    fg="blue",
+                                    styles=["bold"]))
+
+        elif type(event) == ModelEventPatchCreate:
+            print ("   Action: %s" % format_color("change restored", styles=["bold"]))
+
+        if type(event) == ModelEventCommentAdd:
+            print ("")
+            CommandWatch.format_comment(event.comment, event.user, usecolor)
+        print ("")
+        print ("")
+
+
     def run(self, config, client, options):
         watch = OperationWatch(client)
 
+        if options.all:
+            bots = []
+        else:
+            bots = config.get_organization_bots()
+
         def cb(event):
-            print (str(event))
+            self.format_event(event,
+                              bots,
+                              options.color)
 
         return watch.run(cb)
 
