@@ -525,6 +525,10 @@ class CommandComments(CommandCaching):
                         "--color", default=False, action="store_true",
                         help="Use terminal color highlighting")
 
+        self.add_option(parser, config,
+                        "--all", default=False, action="store_true",
+                        help="Don't filter list of comments to strip bots")
+
     @staticmethod
     def wrap_text(message, indent="", width=78):
         lines = textwrap.wrap(message, width)
@@ -602,7 +606,10 @@ class CommandComments(CommandCaching):
                                files=True,
                                comments=True)
 
-        bots = config.get_organization_bots()
+        if options.all:
+            bots = []
+        else:
+            bots = config.get_organization_bots()
 
         def mycb(change):
             self.format_change(change, bots, options.color)
