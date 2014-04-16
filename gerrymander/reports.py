@@ -307,7 +307,7 @@ class ReportChanges(ReportBaseChange):
             for filere in self.files:
                 for patch in change.patches:
                     for file in patch.files:
-                        if re.search(filere, file):
+                        if re.search(filere, file.path):
                             return True
             return False
 
