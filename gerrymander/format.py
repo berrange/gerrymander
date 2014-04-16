@@ -42,3 +42,51 @@ def format_date(then):
 
     except (TypeError, ValueError):
         return ""
+
+
+STYLES = {
+    "reset": 0,
+    "bold": 1,
+    "underline": 4,
+    "blinkslow": 5,
+    "blinkfast": 6,
+    "reverse": 7
+}
+
+COLORS = {
+    "grey": 0,
+    "red": 1,
+    "green": 2,
+    "yellow": 3,
+    "blue": 4,
+    "magenta": 5,
+    "cyan": 6,
+    "white": 7
+}
+
+FOREGROUND = 30
+BACKGROUND = 40
+
+ESCAPE = '\033[%dm'
+
+
+def format_color(text, usecolor=True, fg=None, bg=None, styles=[]):
+    if not usecolor:
+        return text
+
+    bits = []
+    if fg is not None:
+        if fg not in COLORS:
+            raise Exception("Unknown color %s" % fg)
+        bits.append(ESCAPE % (FOREGROUND + COLORS[fg]))
+    if bg is not None:
+        if bg not in COLORS:
+            raise Exception("Unknown color %s" % bg)
+        bits.append(ESCAPE % (BACKGROUND + COLORS[bg]))
+    for style in styles:
+        if style not in STYLES:
+            raise Exception("Unknown style %s" % style)
+        bits.append(ESCAPE % (STYLES[style]))
+    bits.append(text)
+    bits.append(ESCAPE % STYLES["reset"])
+    return "".join(bits)
