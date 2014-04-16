@@ -202,8 +202,11 @@ class Command(object):
 
 class CommandCaching(Command):
 
-    def __init__(self, name, help, longcache=False):
+    def __init__(self, name, help):
         super(CommandCaching, self).__init__(name, help)
+        self.longcache = False
+
+    def set_long_cache(self, longcache):
         self.longcache = longcache
 
     def add_options(self, parser, config):
@@ -254,10 +257,10 @@ class CommandWatch(Command):
         return watch.run(cb)
 
 
-class CommandReport(CommandCaching):
+class CommandReport(Command):
 
-    def __init__(self, name, help, longcache=False):
-        super(CommandReport, self).__init__(name, help, longcache)
+    def __init__(self, name, help):
+        super(CommandReport, self).__init__(name, help)
 
     def add_options(self, parser, config):
         super(CommandReport, self).add_options(parser, config)
@@ -314,10 +317,10 @@ class CommandReport(CommandCaching):
         print (table)
 
 
-class CommandProject(CommandReport):
+class CommandProject(Command):
 
-    def __init__(self, name, help, longcache=False):
-        super(CommandProject, self).__init__(name, help, longcache)
+    def __init__(self, name, help):
+        super(CommandProject, self).__init__(name, help)
 
 
     def add_options(self, parser, config):
@@ -366,11 +369,12 @@ class CommandProject(CommandReport):
             return options.project
 
 
-class CommandPatchReviewStats(CommandProject):
+class CommandPatchReviewStats(CommandProject, CommandCaching, CommandReport):
 
     def __init__(self, name="patchreviewstats", help="Statistics on patch review approvals"):
-        super(CommandPatchReviewStats, self).__init__(name, help, longcache=True)
+        super(CommandPatchReviewStats, self).__init__(name, help)
         self.teams = {}
+        self.set_long_cache(True)
 
     def add_options(self, parser, config):
         super(CommandPatchReviewStats, self).add_options(parser, config)
@@ -408,7 +412,7 @@ class CommandPatchReviewStats(CommandProject):
         return CommandReport.run(self, config, client, options)
 
 
-class CommandChanges(CommandProject):
+class CommandChanges(CommandProject, CommandCaching, CommandReport):
 
     def __init__(self, name="changes", help="Query project changes"):
         super(CommandChanges, self).__init__(name, help)
@@ -449,7 +453,7 @@ class CommandChanges(CommandProject):
                              approvals=options.approval,
                              files=options.file)
 
-class CommandToDoMine(CommandProject):
+class CommandToDoMine(CommandProject, CommandCaching, CommandReport):
 
     def __init__(self, name="todo-mine", help="List of changes I've looked at before"):
         super(CommandToDoMine, self).__init__(name, help)
@@ -465,7 +469,7 @@ class CommandToDoMine(CommandProject):
                                   projects=self.get_projects(config, options))
 
 
-class CommandToDoOthers(CommandProject):
+class CommandToDoOthers(CommandProject, CommandCaching, CommandReport):
 
     def __init__(self, name="todo-others", help="List of changes I've not looked at before"):
         super(CommandToDoOthers, self).__init__(name, help)
@@ -480,7 +484,7 @@ class CommandToDoOthers(CommandProject):
                                     projects=self.get_projects(config, options))
 
 
-class CommandToDoAnyones(CommandProject):
+class CommandToDoAnyones(CommandProject, CommandCaching, CommandReport):
 
     def __init__(self, name="todo-anyones", help="List of changes anyone has looked at"):
         super(CommandToDoAnyones, self).__init__(name, help)
@@ -491,7 +495,7 @@ class CommandToDoAnyones(CommandProject):
                                      projects=self.get_projects(config, options))
 
 
-class CommandToDoNoones(CommandProject):
+class CommandToDoNoones(CommandProject, CommandCaching, CommandReport):
 
     def __init__(self, name="todo-noones", help="List of changes on one has looked at yet"):
         super(CommandToDoNoones, self).__init__(name, help)
