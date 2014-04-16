@@ -91,6 +91,28 @@ class ModelApproval(ModelBase):
                              data.get("grantedOn", None),
                              user)
 
+class ModelComment(ModelBase):
+    def __init__(self, message, file, line, reviewer):
+        self.message = message
+        self.file = file
+        self.line = line
+        self.reviewer = reviewer
+
+    def is_reviewer_in_list(self, users):
+        if self.reviewer is None:
+            return False
+        return self.reviewer.is_in_list(users)
+
+    @staticmethod
+    def from_json(data):
+        user = None
+        if data.get("reviewer", None):
+            user = ModelUser.from_json(data["reviewer"])
+        return ModelComment(data.get("message", ""),
+                            data.get("file", None),
+                            data.get("line", 0),
+                            user)
+
 
 class ModelPatch(ModelBase):
 
@@ -150,18 +172,23 @@ class ModelPatch(ModelBase):
         if "uploader" in data:
             user = ModelUser.from_json(data["uploader"])
 
+        comments = []
+        for c in data.get("comments", []):
+            comments.append(ModelComment.from_json(c))
+
         return ModelPatch(int(data.get("number", 0)),
                           data.get("revision"),
                           data.get("ref"),
                           user,
                           data.get("createdOn"),
                           approvals,
-                          files)
+                          files,
+                          comments)
 
 
 class ModelChange(ModelBase):
 
-    def __init__(self, project, branch, topic, id, number, subject, owner, url, createdOn, lastUpdated, status, patches = []):
+    def __init__(self, project, branch, topic, id, number, subject, owner, url, createdOn, lastUpdated, status, patches = [], comments = []):
         self.project = project
         self.branch = branch
         self.topic = topic
@@ -180,6 +207,7 @@ class ModelChange(ModelBase):
             self.lastUpdated = None
         self.status = status
         self.patches = patches
+        self.comments = comments
 
     def get_current_patch(self):
         if len(self.patches) == 0:
@@ -246,6 +274,10 @@ class ModelChange(ModelBase):
         if "number" in data:
             number = int(data.get("number"))
 
+        comments = []
+        for c in data.get("comments", []):
+            comments.append(ModelComment.from_json(c))
+
         return ModelChange(data.get("project", None),
                            data.get("branch", None),
                            data.get("topic", None),
@@ -257,7 +289,8 @@ class ModelChange(ModelBase):
                            data.get("createdOn", None),
                            data.get("lastUpdated", None),
                            data.get("status", None),
-                           patches)
+                           patches,
+                           comments)
 
 
 class ModelEvent(ModelBase):
