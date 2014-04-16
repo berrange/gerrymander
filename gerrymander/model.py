@@ -300,6 +300,11 @@ class ModelEvent(ModelBase):
         self.patch = patch
         self.user = user
 
+    def is_user_in_list(self, users):
+        if self.user is None:
+            return False
+        return self.user.is_in_list(users)
+
     @staticmethod
     def from_json(data):
         if data["type"] == "comment-added":
