@@ -15,6 +15,7 @@
 
 from gerrymander.client import ClientLive
 from gerrymander.client import ClientCaching
+from gerrymander.operations import OperationQuery
 from gerrymander.operations import OperationWatch
 from gerrymander.reports import ReportPatchReviewStats
 from gerrymander.reports import ReportChanges
@@ -22,12 +23,14 @@ from gerrymander.reports import ReportToDoListMine
 from gerrymander.reports import ReportToDoListOthers
 from gerrymander.reports import ReportToDoListAnyones
 from gerrymander.reports import ReportToDoListNoones
+from gerrymander.format import format_color
 
 import getpass
 import os
 import logging
 import sys
 import argparse
+import textwrap
 
 try:
     import configparser
@@ -506,6 +509,107 @@ class CommandToDoNoones(CommandProject, CommandCaching, CommandReport):
                                     projects=self.get_projects(config, options))
 
 
+class CommandComments(CommandCaching):
+
+    def __init__(self, name="comments", help="Display comments on a change"):
+        super(CommandComments, self).__init__(name, help)
+
+    def add_options(self, parser, config):
+        super(CommandComments, self).add_options(parser, config)
+
+        self.add_option(parser, config,
+                        "change", default=None,
+                        help="Filter based on status")
+
+        self.add_option(parser, config,
+                        "--color", default=False, action="store_true",
+                        help="Use terminal color highlighting")
+
+    @staticmethod
+    def wrap_text(message, indent="", width=78):
+        lines = textwrap.wrap(message, width)
+        return "\n".join(map(lambda x: indent + x, lines))
+
+    @staticmethod
+    def format_comments(allcomments, bots, usecolor):
+        comments = []
+        for comment in allcomments:
+            if not comment.is_reviewer_in_list(bots):
+                comments.append(comment)
+
+        if len(comments) == 0:
+            print (format_color("  No  comments",
+                                usecolor,
+                                fg="grey"))
+            print ("")
+            print ("")
+        else:
+            for comment in comments:
+                if comment.file is not None:
+                    print (format_color(
+                        "  %s: %s:%d" % (comment.reviewer.name,
+                                         comment.file,
+                                         comment.line),
+                        usecolor,
+                        styles=["bold"]))
+                else:
+                    print (format_color(
+                        "  %s" % (comment.reviewer.name,),
+                        usecolor,
+                        styles=["bold"]))
+                print ("")
+                print (CommandComments.wrap_text(comment.message, "  "))
+                print ("")
+                print ("")
+
+    @staticmethod
+    def format_change(change, bots, usecolor):
+        print (format_color("Change %s (%s)" % (change.url, change.id),
+                            usecolor,
+                            fg="red",
+                            styles=["bold"]))
+        print ("")
+        print ("  %s" % change.subject)
+        print ("")
+        print ("")
+
+        for patch in change.patches:
+            print (format_color("Patch %d (%s)" % (patch.number, patch.revision),
+                                usecolor,
+                                fg="blue",
+                                styles=["bold"]))
+            print ("")
+            comments = []
+            comments.extend(patch.comments)
+
+            prefix = "Patch Set %d" % patch.number
+            for comment in change.comments:
+                if comment.message.startswith(prefix):
+                    comments.append(comment)
+
+            CommandComments.format_comments(comments, bots, usecolor)
+
+
+    def run(self, config, client, options):
+        change = options.change
+
+        query = OperationQuery(client,
+                               {
+                                   "change": [ change ],
+                               },
+                               OperationQuery.PATCHES_ALL,
+                               approvals=True,
+                               files=True,
+                               comments=True)
+
+        bots = config.get_organization_bots()
+
+        def mycb(change):
+            self.format_change(change, bots, options.color)
+
+        query.run(mycb, limit=1)
+
+
 class CommandTool(object):
 
     def __init__(self):
@@ -542,6 +646,7 @@ class CommandTool(object):
         self.add_command(subparser, config, CommandToDoOthers)
         self.add_command(subparser, config, CommandPatchReviewStats)
         self.add_command(subparser, config, CommandChanges)
+        self.add_command(subparser, config, CommandComments)
 
     def add_config_commands(self, subparser, config):
         aliases = config.get_command_aliases()
