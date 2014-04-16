@@ -529,6 +529,15 @@ class CommandComments(CommandCaching):
                         "--all", default=False, action="store_true",
                         help="Don't filter list of comments to strip bots")
 
+        self.add_option(parser, config,
+                        "--current", default=False, action="store_true",
+                        help="Only display comments against current patch")
+
+        self.add_option(parser, config,
+                        "--patch", default=0,
+                        help="Only display comments against patch NN")
+
+
     @staticmethod
     def wrap_text(message, indent="", width=78):
         lines = textwrap.wrap(message, width)
@@ -567,7 +576,7 @@ class CommandComments(CommandCaching):
                 print ("")
 
     @staticmethod
-    def format_change(change, bots, usecolor):
+    def format_change(change, bots, usecolor, currentpatch, patchnum):
         print (format_color("Change %s (%s)" % (change.url, change.id),
                             usecolor,
                             fg="red",
@@ -577,7 +586,13 @@ class CommandComments(CommandCaching):
         print ("")
         print ("")
 
-        for patch in change.patches:
+        patches = change.patches
+        if currentpatch:
+            patches = patches[-1:]
+        elif patchnum:
+            patches = patches[patchnum-1:patchnum]
+
+        for patch in patches:
             print (format_color("Patch %d (%s)" % (patch.number, patch.revision),
                                 usecolor,
                                 fg="blue",
@@ -612,7 +627,7 @@ class CommandComments(CommandCaching):
             bots = config.get_organization_bots()
 
         def mycb(change):
-            self.format_change(change, bots, options.color)
+            self.format_change(change, bots, options.color, options.current, int(options.patch))
 
         query.run(mycb, limit=1)
 
