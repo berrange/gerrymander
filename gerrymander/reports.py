@@ -392,11 +392,12 @@ class ReportToDoListOthers(ReportToDoList):
         # no reviewers at all.
         if change.has_any_other_reviewers(self.bots):
             return True
+        return False
 
 
 class ReportToDoListAnyones(ReportToDoList):
 
-    def __init__(self, client, bots=[], projects=[]):
+    def __init__(self, client, username, bots=[], projects=[]):
         '''
         Report to provide a list of changes where at least
         one other non-bot user has provided review
@@ -404,10 +405,14 @@ class ReportToDoListAnyones(ReportToDoList):
         super(ReportToDoListAnyones, self).__init__(client,
                                                     projects)
         self.bots = bots
+        self.username = username
 
     def filter(self, change):
+        if change.has_current_reviewers([self.username]):
+            return False
         if change.has_any_other_reviewers(self.bots):
             return True
+        return False
 
 
 class ReportToDoListNoones(ReportToDoList):
@@ -424,3 +429,4 @@ class ReportToDoListNoones(ReportToDoList):
     def filter(self, change):
         if not change.has_any_other_reviewers(self.bots):
             return True
+        return False

@@ -493,7 +493,12 @@ class CommandToDoAnyones(CommandProject, CommandCaching, CommandReport):
         super(CommandToDoAnyones, self).__init__(name, help)
 
     def get_report(self, config, client, options):
+        username = config.get_server_username()
+        if username is None:
+            username = getpass.getuser()
+
         return ReportToDoListAnyones(client,
+                                     username=username,
                                      bots=config.get_organization_bots(),
                                      projects=self.get_projects(config, options))
 
