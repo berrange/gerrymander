@@ -676,7 +676,7 @@ class CommandComments(CommandCaching):
                             comment.file,
                             comment.line))
                 else:
-                    print ("  %s: (%s) %s:%d" %
+                    print ("  %s: (%s)" %
                            (format_color(comment.reviewer.name,
                                          usecolor,
                                          styles=["bold"]),
