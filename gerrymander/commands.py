@@ -17,6 +17,7 @@ from gerrymander.client import ClientLive
 from gerrymander.client import ClientCaching
 from gerrymander.operations import OperationQuery
 from gerrymander.operations import OperationWatch
+from gerrymander.reports import ReportOutput
 from gerrymander.reports import ReportPatchReviewStats
 from gerrymander.reports import ReportChanges
 from gerrymander.reports import ReportToDoListMine
@@ -425,6 +426,27 @@ class CommandReport(Command):
         super(CommandReport, self).add_options(parser, config)
 
         self.add_option(parser, config,
+                        "-m", "--mode", default=ReportOutput.DISPLAY_MODE_TEXT,
+                        help="Display output in 'text', 'json', 'xml'")
+
+    def get_report(self, config, client, options):
+        raise NotImplementedError("subclass must override get_query")
+
+    def run(self, config, client, options):
+        report = self.get_report(config, client, options)
+
+        report.display(options.mode)
+
+
+class CommandReportTable(CommandReport):
+
+    def __init__(self, name, help):
+        super(CommandReportTable, self).__init__(name, help)
+
+    def add_options(self, parser, config):
+        super(CommandReportTable, self).add_options(parser, config)
+
+        self.add_option(parser, config,
                         "-l", "--limit", default=None,
                         help="Limit to N results")
 
@@ -436,15 +458,11 @@ class CommandReport(Command):
                         action="append",
                         help="Display the named field")
 
-    def get_report(self, config, client, options):
-        raise NotImplementedError("subclass must override get_query")
-
     def run(self, config, client, options):
         report = self.get_report(config, client, options)
 
-        limit = options.limit
-        if limit is not None:
-            limit = int(limit)
+        if options.limit is not None:
+            report.set_data_limit(int(options.limit))
 
         if options.sort is not None:
             reverse = False
@@ -472,11 +490,10 @@ class CommandReport(Command):
                     col.truncate = truncate
                 col.visible = True
 
-        table = report.get_table(limit=limit)
-        print (table)
+        report.display(options.mode)
 
 
-class CommandPatchReviewStats(CommandProject, CommandCaching, CommandReport):
+class CommandPatchReviewStats(CommandProject, CommandCaching, CommandReportTable):
 
     def __init__(self, name="patchreviewstats", help="Statistics on patch review approvals"):
         super(CommandPatchReviewStats, self).__init__(name, help)
@@ -491,35 +508,28 @@ class CommandPatchReviewStats(CommandProject, CommandCaching, CommandReport):
                         help="Set number of days history to consult")
 
     def get_report(self, config, client, options):
-        return ReportPatchReviewStats(client,
-                                      self.get_projects(config, options, True),
-                                      int(options.days),
-                                      self.teams)
-
-    def run(self, config, client, options):
         if options.all_groups:
             groups = config.get_organization_groups()
         else:
             groups = options.group
 
-        char = '*'
-        teamchars = {}
-        self.teams = {}
+        teams = {}
         for team in config.get_organization_teams():
-            teamchars[team] = char
-            self.teams[char] = []
-            char = char + "*"
-
-        for group in groups:
-            teams = {}
-            for team in config.get_organization_teams():
+            teams[team] = []
+            for group in groups:
                 users = config.get_group_team_members(group, team)
-                self.teams[teamchars[team]].extend(users)
+                teams[team].extend(users)
 
-        return CommandReport.run(self, config, client, options)
+        return ReportPatchReviewStats(client,
+                                      self.get_projects(config, options, True),
+                                      int(options.days),
+                                      teams)
+
+    def run(self, config, client, options):
+        return super(CommandPatchReviewStats, self).run(config, client, options)
 
 
-class CommandChanges(CommandProject, CommandCaching, CommandReport):
+class CommandChanges(CommandProject, CommandCaching, CommandReportTable):
 
     def __init__(self, name="changes", help="Query project changes"):
         super(CommandChanges, self).__init__(name, help)
@@ -560,7 +570,7 @@ class CommandChanges(CommandProject, CommandCaching, CommandReport):
                              approvals=options.approval,
                              files=options.file)
 
-class CommandToDoMine(CommandProject, CommandCaching, CommandReport):
+class CommandToDoMine(CommandProject, CommandCaching, CommandReportTable):
 
     def __init__(self, name="todo-mine", help="List of changes I've looked at before"):
         super(CommandToDoMine, self).__init__(name, help)
@@ -576,7 +586,7 @@ class CommandToDoMine(CommandProject, CommandCaching, CommandReport):
                                   projects=self.get_projects(config, options))
 
 
-class CommandToDoOthers(CommandProject, CommandCaching, CommandReport):
+class CommandToDoOthers(CommandProject, CommandCaching, CommandReportTable):
 
     def __init__(self, name="todo-others", help="List of changes I've not looked at before"):
         super(CommandToDoOthers, self).__init__(name, help)
@@ -591,7 +601,7 @@ class CommandToDoOthers(CommandProject, CommandCaching, CommandReport):
                                     projects=self.get_projects(config, options))
 
 
-class CommandToDoAnyones(CommandProject, CommandCaching, CommandReport):
+class CommandToDoAnyones(CommandProject, CommandCaching, CommandReportTable):
 
     def __init__(self, name="todo-anyones", help="List of changes anyone has looked at"):
         super(CommandToDoAnyones, self).__init__(name, help)
@@ -607,7 +617,7 @@ class CommandToDoAnyones(CommandProject, CommandCaching, CommandReport):
                                      projects=self.get_projects(config, options))
 
 
-class CommandToDoNoones(CommandProject, CommandCaching, CommandReport):
+class CommandToDoNoones(CommandProject, CommandCaching, CommandReportTable):
 
     def __init__(self, name="todo-noones", help="List of changes on one has looked at yet"):
         super(CommandToDoNoones, self).__init__(name, help)

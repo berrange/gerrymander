@@ -18,6 +18,9 @@ import prettytable
 import logging
 import time
 import re
+import json
+import sys
+import xml.dom.minidom
 
 from gerrymander.operations import OperationQuery
 from gerrymander.model import ModelApproval
@@ -25,7 +28,7 @@ from gerrymander.format import format_date
 
 LOG = logging.getLogger(__name__)
 
-class ReportColumn(object):
+class ReportOutputColumn(object):
 
     ALIGN_LEFT = "l"
     ALIGN_RIGHT = "r"
@@ -62,12 +65,157 @@ class ReportColumn(object):
         else:
             return self.mapfunc(report, self.key, row)
 
+class ReportOutput(object):
+
+    DISPLAY_MODE_TEXT = "text"
+    DISPLAY_MODE_XML = "xml"
+    DISPLAY_MODE_JSON = "json"
+
+    def display(self, mode, stream=sys.stdout):
+        if mode == ReportOutput.DISPLAY_MODE_TEXT:
+            stream.write(self.to_text())
+        elif mode == ReportOutput.DISPLAY_MODE_XML:
+            stream.write(self.to_xml())
+        elif mode == ReportOutput.DISPLAY_MODE_JSON:
+            stream.write(self.to_json())
+        else:
+            raise Exception("Unknown display mode '%s'" % mode)
+
+    def to_text(self):
+        raise NotImplementedError("Subclass should implement the 'to_text' method")
+
+    def to_xml(self):
+        raise NotImplementedError("Subclass should implement the 'to_xml' method")
+
+    def to_json(self):
+        raise NotImplementedError("Subclass should implement the 'to_json' method")
+
+
+class ReportOutputTable(ReportOutput):
+    def __init__(self, columns, sortcol, reverse, limit):
+        self.columns = columns
+        self.rows = []
+        self.sortcol = sortcol
+        self.reverse = reverse
+        self.limit = limit
+
+    def add_row(self, row):
+        self.rows.append(row)
+
+    def sort_rows(self):
+        sortcol = None
+        for col in self.columns:
+            if col.key == self.sortcol:
+                sortcol = col
+
+        if sortcol is not None:
+            self.rows.sort(key = lambda item: sortcol.get_sort_value(self, item),
+                           reverse=self.reverse)
+
+    def to_xml(self):
+        self.sort_rows()
+
+        impl = xml.dom.minidom.getDOMImplementation()
+        doc = impl.createDocument(None, "table", None)
+        root = doc.documentElement
+        headers = doc.createElement("headers")
+        content = doc.createElement("content")
+        root.appendChild(headers)
+        root.appendChild(content)
+
+        for col in self.columns:
+            if col.visible:
+                xmlcol = doc.createElement(col.key)
+                xmlcol.appendChild(doc.createTextNode(col.label))
+                headers.appendChild(xmlcol)
+
+        rows = self.rows
+        if self.limit is not None:
+            rows = rows[0:self.limit]
+        for row in rows:
+            xmlrow = doc.createElement("row")
+            for col in self.columns:
+                if col.visible:
+                    xmlfield = doc.createElement(col.key)
+                    print (str(col.key))
+                    print (str(row))
+                    xmlfield.appendChild(doc.createTextNode(col.get_value(self, row)))
+                    xmlrow.appendChild(xmlfield)
+            content.appendChild(xmlrow)
+
+        return doc.toprettyxml()
+
+    def to_json(self):
+        self.sort_rows()
+
+        headers = {}
+        for col in self.columns:
+            if col.visible:
+                headers[col.key] = col.label
+
+        content = []
+        rows = self.rows
+        if self.limit is not None:
+            rows = rows[0:self.limit]
+        for row in rows:
+            data = {}
+            for col in self.columns:
+                if col.visible:
+                    data[col.key] = col.get_value(self, row)
+            content.append(data)
+
+        doc = {
+            "headers": headers,
+            "content": content
+        }
+
+        return json.dumps(doc, indent="  ") + "\n"
+
+    def to_text(self):
+        self.sort_rows()
+
+        labels = []
+        for col in self.columns:
+            if col.visible:
+                labels.append(col.label)
+        table = prettytable.PrettyTable(labels)
+        for col in self.columns:
+            table.align[col.label] = col.align
+
+        table.padding_width = 1
+
+        rows = self.rows
+        if self.limit is not None:
+            rows = rows[0:self.limit]
+        for row in rows:
+            data = []
+            for col in self.columns:
+                if col.visible:
+                    data.append(col.get_value(self, row))
+            table.add_row(data)
+
+        return str(table) + "\n"
+
 
 class Report(object):
 
-    def __init__(self, client, columns, sort=None, reverse=False):
+    def __init__(self, client):
         self.client = client
+
+    def generate(self):
+        raise NotImplementedError("Subclass must override generate method")
+
+    def display(self, mode):
+        output = self.generate()
+        output.display(mode)
+
+
+class ReportTable(Report):
+
+    def __init__(self, client, columns, sort=None, reverse=False):
+        super(ReportTable, self).__init__(client)
         self.columns = columns
+        self.limit = None
         self.set_sort_column(sort, reverse)
 
     def get_columns(self):
@@ -95,52 +243,20 @@ class Report(object):
         self.sort = key
         self.reverse = reverse
 
-    def generate(self):
-        raise NotImplementedError("Subclass must override generate method")
+    def set_data_limit(self, limit):
+        self.limit = limit
 
-    def get_table(self, limit=None):
-        labels = []
-        for col in self.columns:
-            if col.visible:
-                labels.append(col.label)
-        table = prettytable.PrettyTable(labels)
-        sortcol = None
-        for col in self.columns:
-            table.align[col.label] = col.align
-            if col.key == self.sort:
-                sortcol = col
-
-        table.padding_width = 1
-
-        items = self.generate()
-
-        if sortcol is not None:
-            items.sort(key = lambda item: sortcol.get_sort_value(self, item),
-                       reverse=self.reverse)
-
-        if limit is not None:
-            items = items[0:limit]
-
-        for item in items:
-            row = []
-            for col in self.columns:
-                if col.visible:
-                    row.append(col.get_value(self, item))
-            table.add_row(row)
-
-        return table
+    def new_table(self):
+        return ReportOutputTable(self.columns, self.sort, self.reverse, self.limit)
 
 
-class ReportPatchReviewStats(Report):
+class ReportPatchReviewStats(ReportTable):
 
     def user_mapfunc(rep, col, row):
-        user = row[0]
+        return row[0]
 
-        for team in rep.teams.keys():
-            if user in rep.teams[team]:
-                return user + " " + team
-
-        return user
+    def team_mapfunc(rep, col, row):
+        return row[2]
 
     def review_mapfunc(rep, col, row):
         return row[1]['total']
@@ -155,18 +271,20 @@ class ReportPatchReviewStats(Report):
         return row[1]['votes'][col]
 
     COLUMNS = [
-        ReportColumn("user", "User", user_mapfunc, align=ReportColumn.ALIGN_LEFT),
-        ReportColumn("reviews", "Reviews", review_mapfunc, align=ReportColumn.ALIGN_RIGHT),
-        ReportColumn("flag-m2", "-2", vote_mapfunc, align=ReportColumn.ALIGN_RIGHT),
-        ReportColumn("flag-m1", "-1", vote_mapfunc, align=ReportColumn.ALIGN_RIGHT),
-        ReportColumn("flag-p1", "+1", vote_mapfunc, align=ReportColumn.ALIGN_RIGHT),
-        ReportColumn("flag-p2", "+2", vote_mapfunc, align=ReportColumn.ALIGN_RIGHT),
-        ReportColumn("ratio", "+/-", ratio_mapfunc, format="%0.0lf%%", align=ReportColumn.ALIGN_RIGHT),
+        ReportOutputColumn("user", "User", user_mapfunc, align=ReportOutputColumn.ALIGN_LEFT),
+        ReportOutputColumn("team", "Team", team_mapfunc, align=ReportOutputColumn.ALIGN_LEFT),
+        ReportOutputColumn("reviews", "Reviews", review_mapfunc, align=ReportOutputColumn.ALIGN_RIGHT),
+        ReportOutputColumn("flag-m2", "-2", vote_mapfunc, align=ReportOutputColumn.ALIGN_RIGHT),
+        ReportOutputColumn("flag-m1", "-1", vote_mapfunc, align=ReportOutputColumn.ALIGN_RIGHT),
+        ReportOutputColumn("flag-p1", "+1", vote_mapfunc, align=ReportOutputColumn.ALIGN_RIGHT),
+        ReportOutputColumn("flag-p2", "+2", vote_mapfunc, align=ReportOutputColumn.ALIGN_RIGHT),
+        ReportOutputColumn("ratio", "+/-", ratio_mapfunc, format="%0.0lf%%", align=ReportOutputColumn.ALIGN_RIGHT),
     ]
 
     def __init__(self, client, projects, maxagedays=30, teams={}):
-        Report.__init__(self, client, ReportPatchReviewStats.COLUMNS,
-                        sort="reviews", reverse=True)
+        super(ReportPatchReviewStats, self).__init__(client,
+                                                     ReportPatchReviewStats.COLUMNS,
+                                                     sort="reviews", reverse=True)
         self.projects = projects
         self.teams = teams
         self.maxagedays = maxagedays
@@ -201,8 +319,12 @@ class ReportPatchReviewStats(Report):
                 continue
 
             reviewer = review.user.username
+            if reviewer is None:
+                reviewer = review.user.name
+                if reviewer is None:
+                    continue
 
-            if reviewer is not None and reviewer.lower() in ["jenkins", "smokestack"]:
+            if reviewer.lower() in ["jenkins", "smokestack"]:
                 continue
 
             reviewers.setdefault(reviewer,
@@ -218,11 +340,18 @@ class ReportPatchReviewStats(Report):
             cur = reviewers[reviewer]['votes'][votes[str(review.value)]]
             reviewers[reviewer]['votes'][votes[str(review.value)]] = cur + 1
 
-        reviewers = [(k, v) for k, v in reviewers.items()]
-        return reviewers
+        table = self.new_table()
+        for user, votes in reviewers.items():
+            userteam = ""
+            for team in self.teams.keys():
+                if user in self.teams[team]:
+                    userteam = team
+
+            table.add_row([user, votes, userteam])
+        return table
 
 
-class ReportBaseChange(Report):
+class ReportBaseChange(ReportTable):
     def approvals_mapfunc(rep, col, row):
         patch = row.get_current_patch()
         if patch is None:
@@ -257,21 +386,21 @@ class ReportBaseChange(Report):
             return row.createdOn
 
     COLUMNS = [
-        ReportColumn("status", "Status", lambda rep, col, row: row.status),
-        ReportColumn("topic", "Topic", lambda rep, col, row: row.topic, visible=False),
-        ReportColumn("url", "URL", lambda rep, col, row: row.url),
-        ReportColumn("owner", "Owner", user_mapfunc),
-        ReportColumn("project", "Project", lambda rep, col, row: row.project, visible=False),
-        ReportColumn("branch", "Branch", lambda rep, col, row: row.branch, visible=False),
-        ReportColumn("subject", "Subject", lambda rep, col, row: row.subject, truncate=30),
-        ReportColumn("createdOn", "Created", date_mapfunc, date_sortfunc),
-        ReportColumn("lastUpdated", "Updated", date_mapfunc, date_sortfunc),
-        ReportColumn("approvals", "Approvals", approvals_mapfunc),
+        ReportOutputColumn("status", "Status", lambda rep, col, row: row.status),
+        ReportOutputColumn("topic", "Topic", lambda rep, col, row: row.topic, visible=False),
+        ReportOutputColumn("url", "URL", lambda rep, col, row: row.url),
+        ReportOutputColumn("owner", "Owner", user_mapfunc),
+        ReportOutputColumn("project", "Project", lambda rep, col, row: row.project, visible=False),
+        ReportOutputColumn("branch", "Branch", lambda rep, col, row: row.branch, visible=False),
+        ReportOutputColumn("subject", "Subject", lambda rep, col, row: row.subject, truncate=30),
+        ReportOutputColumn("createdOn", "Created", date_mapfunc, date_sortfunc),
+        ReportOutputColumn("lastUpdated", "Updated", date_mapfunc, date_sortfunc),
+        ReportOutputColumn("approvals", "Approvals", approvals_mapfunc),
     ]
 
     def __init__(self, client):
-        Report.__init__(self, client, ReportBaseChange.COLUMNS,
-                        sort="createdOn", reverse=False)
+        super(ReportBaseChange, self).__init__(client, ReportBaseChange.COLUMNS,
+                                               sort="createdOn", reverse=False)
 
 class ReportChanges(ReportBaseChange):
 
@@ -306,8 +435,6 @@ class ReportChanges(ReportBaseChange):
                                approvals=True,
                                files=needFiles)
 
-        changes = []
-
         def match_files(change):
             if len(self.files) == 0:
                 return True
@@ -318,13 +445,14 @@ class ReportChanges(ReportBaseChange):
                             return True
             return False
 
+        table = self.new_table()
         def querycb(change):
             if match_files(change):
-                changes.append(change)
+                table.add_row(change)
 
         query.run(querycb)
 
-        return changes
+        return table
 
 
 class ReportToDoList(ReportBaseChange):
@@ -348,15 +476,14 @@ class ReportToDoList(ReportBaseChange):
                                patches=OperationQuery.PATCHES_ALL,
                                approvals=True)
 
-        changes = []
-
+        table = self.new_table()
         def querycb(change):
             if self.filter(change):
-                changes.append(change)
+                table.add_row(change)
 
         query.run(querycb)
 
-        return changes
+        return table
 
 
 
