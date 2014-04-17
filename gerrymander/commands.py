@@ -19,6 +19,7 @@ from gerrymander.operations import OperationQuery
 from gerrymander.operations import OperationWatch
 from gerrymander.reports import ReportOutput
 from gerrymander.reports import ReportPatchReviewStats
+from gerrymander.reports import ReportOpenReviewStats
 from gerrymander.reports import ReportChanges
 from gerrymander.reports import ReportToDoListMine
 from gerrymander.reports import ReportToDoListOthers
@@ -529,6 +530,36 @@ class CommandPatchReviewStats(CommandProject, CommandCaching, CommandReportTable
         return super(CommandPatchReviewStats, self).run(config, client, options)
 
 
+class CommandOpenReviewStats(CommandProject, CommandCaching, CommandReportTable):
+
+    def __init__(self, name="openreviewstats", help="Statistics on open patch reviewss"):
+        super(CommandOpenReviewStats, self).__init__(name, help)
+        self.teams = {}
+        self.set_long_cache(True)
+
+    def add_options(self, parser, config):
+        super(CommandOpenReviewStats, self).add_options(parser, config)
+
+        self.add_option(parser, config,
+                        "--branch", default="master",
+                        help="Set branch name to query")
+        self.add_option(parser, config,
+                        "--days", default=7,
+                        help="Show count waiting more than N days")
+
+    def get_report(self, config, client, options):
+        return ReportOpenReviewStats(client,
+                                     self.get_projects(config, options, True),
+                                     options.branch,
+                                     int(options.days))
+
+    def run(self, config, client, options):
+        if options.limit is None:
+            options.limit = 5
+
+        return super(CommandOpenReviewStats, self).run(config, client, options)
+
+
 class CommandChanges(CommandProject, CommandCaching, CommandReportTable):
 
     def __init__(self, name="changes", help="Query project changes"):
@@ -788,6 +819,7 @@ class CommandTool(object):
         self.add_command(subparser, config, CommandToDoMine)
         self.add_command(subparser, config, CommandToDoOthers)
         self.add_command(subparser, config, CommandPatchReviewStats)
+        self.add_command(subparser, config, CommandOpenReviewStats)
         self.add_command(subparser, config, CommandChanges)
         self.add_command(subparser, config, CommandComments)
 

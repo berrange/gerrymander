@@ -13,6 +13,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import time
+
 class ModelBase(object):
     pass
 
@@ -80,6 +82,18 @@ class ModelApproval(ModelBase):
             return True
         return False
 
+    def is_nack(self):
+        if self.value < 0:
+            return True
+        return False
+
+    def is_reviewer_nack(self):
+        if self.action != ModelApproval.ACTION_REVIEWED:
+            return False
+        if self.value < 0:
+            return True
+        return False
+
     @staticmethod
     def from_json(data):
         user = None
@@ -135,6 +149,29 @@ class ModelPatch(ModelBase):
             return True
 
         return False
+
+    def is_reviewer_nacked(self):
+        for approval in self.approvals:
+            if approval.is_reviewer_nack():
+                return True
+        return False
+
+    def is_nacked(self):
+        for approval in self.approvals:
+            if approval.is_nack():
+                return True
+        return False
+
+    def get_age(self, now):
+        if len(self.approvals) == 0:
+            return now - self.createdOn
+
+        age = 0
+        for approval in self.approvals:
+            thisage = now - approval.grantedOn
+            if thisage > age:
+                age = thisage
+        return age
 
     def has_other_reviewers(self, excludeusers):
         '''Determine if the patch has been reviewed by any
@@ -213,6 +250,33 @@ class ModelChange(ModelBase):
         if len(self.patches) == 0:
             return None
         return self.patches[len(self.patches) - 1]
+
+    def get_first_patch(self):
+        if len(self.patches) == 0:
+            return None
+        return self.patches[0]
+
+    def get_reviewer_not_nacked_patch(self):
+        prev = None
+        for patch in reversed(self.patches):
+            if patch.is_reviewer_nacked():
+                break
+            prev = patch
+        return prev
+
+    def get_current_age(self):
+        patch = self.get_current_patch()
+        return patch.get_age(time.time())
+
+    def get_first_age(self):
+        patch = self.get_first_patch()
+        return patch.get_age(time.time())
+
+    def get_reviewer_not_nacked_age(self):
+        patch = self.get_reviewer_not_nacked_patch()
+        if patch is None:
+            return 0
+        return patch.get_age(time.time())
 
     @staticmethod
     def is_user_in_list(users, user):

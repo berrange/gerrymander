@@ -25,6 +25,7 @@ import xml.dom.minidom
 from gerrymander.operations import OperationQuery
 from gerrymander.model import ModelApproval
 from gerrymander.format import format_date
+from gerrymander.format import format_delta
 from gerrymander.format import format_title
 
 LOG = logging.getLogger(__name__)
@@ -199,12 +200,15 @@ class ReportOutputList(ReportOutput):
 
 class ReportOutputTable(ReportOutput):
     def __init__(self, columns, sortcol, reverse, limit, title=None):
-        self.columns = columns
+        self.columns = list(columns)
         self.rows = []
         self.sortcol = sortcol
         self.reverse = reverse
         self.limit = limit
         self.title = title
+
+    def add_column(self, col):
+        self.columns.append(col)
 
     def add_row(self, row):
         self.rows.append(row)
@@ -691,3 +695,195 @@ class ReportToDoListNoones(ReportToDoList):
         if not change.has_any_other_reviewers(self.bots):
             return True
         return False
+
+
+class ReportOpenReviewStats(ReportBaseChange):
+
+    def __init__(self, client, projects, branch="master", days=7):
+        super(ReportOpenReviewStats, self).__init__(client)
+        self.projects = projects
+        self.branch = branch
+        self.days = days
+
+    @staticmethod
+    def average_age(changes, ages):
+        if len(changes) == 0:
+            return 0
+        total = 0
+        for change in changes:
+            total += ages[change]
+        return format_delta(total / len(changes))
+
+    @staticmethod
+    def median_age(changes, ages):
+        if len(changes) == 0:
+            return 0
+        total = 0
+        wantages = []
+        for change in changes:
+            wantages.append(ages[change])
+        wantages.sort()
+        return format_delta(wantages[int(len(wantages)/2)])
+
+    @staticmethod
+    def older_than(changes, ages, cutoffdays):
+        cutoff = cutoffdays * 24 * 60 * 60
+        older = 0
+        for change in changes:
+            if ages[change] > cutoff:
+                older = older + 1
+        return older
+
+    @staticmethod
+    def get_longest_changes(ids, changes, ages, count):
+        want = []
+        for id in sorted(ids, key=lambda x: ages[x]):
+            want.append(changes[id])
+        return want
+
+    def generate(self):
+        # We could query all projects at once, but if we do them
+        # individually it means we get better hit rate against the
+        # cache if the report is re-run for many different project
+        # combinations
+        agecurrent = {}
+        agefirst = {}
+        agenonnacked = {}
+        wait_reviewer = []
+        wait_submitter = []
+        changes = {}
+        for project in self.projects:
+            query = OperationQuery(self.client,
+                                   {
+                                       "project": [project],
+                                       "status": [OperationQuery.STATUS_OPEN],
+                                       "branch": [self.branch],
+                                   },
+                                   patches=OperationQuery.PATCHES_ALL,
+                                   approvals=True)
+
+
+            def querycb(change):
+                if change.status != "NEW":
+                    return
+
+                now = time.time()
+                current = change.get_current_patch()
+                first = change.get_first_patch()
+                nonnacked = change.get_reviewer_not_nacked_patch()
+
+                changes[change.id] = change
+
+                if current.is_nacked():
+                    wait_submitter.append(change.id)
+                else:
+                    wait_reviewer.append(change.id)
+
+                agecurrent[change.id] = current.get_age(now)
+                agefirst[change.id] = first.get_age(now)
+                if nonnacked:
+                    agenonnacked[change.id] = nonnacked.get_age(now)
+                else:
+                    agenonnacked[change.id] = 0
+
+            query.run(querycb)
+
+        compound = ReportOutputCompound()
+        summary = ReportOutputList([
+            ReportOutputColumn("nreviews", "Total open reviews", format="%d",
+                               mapfunc=lambda rep, col, row: row[0] + row [1]),
+            ReportOutputColumn("waitsubmitter", "Waiting on submitter", format="%d",
+                               mapfunc=lambda rep, col, row: row[0]),
+            ReportOutputColumn("waitreviewer", "Waiting on reviewer", format="%d",
+                               mapfunc=lambda rep, col, row: row[1]),
+        ], title="Review summary")
+        summary.set_row([len(wait_submitter), len(wait_reviewer)])
+        compound.add_report(summary)
+
+        lastrev = ReportOutputList([
+            ReportOutputColumn("average", "Average wait time",
+                               mapfunc=lambda rep, col, row: row[0]),
+            ReportOutputColumn("median", "Median wait time",
+                               mapfunc=lambda rep, col, row: row[1]),
+            ReportOutputColumn("stale", "Older than %d days" % self.days, format="%d",
+                               mapfunc=lambda rep, col, row: row[2]),
+        ], title="Summary since current revision")
+        lastrev.set_row([self.average_age(wait_reviewer, agecurrent),
+                         self.median_age(wait_reviewer, agecurrent),
+                         self.older_than(wait_reviewer, agecurrent, self.days)])
+        compound.add_report(lastrev)
+
+
+        firstrev = ReportOutputList([
+            ReportOutputColumn("average", "Average wait time",
+                               mapfunc=lambda rep, col, row: row[0]),
+            ReportOutputColumn("median", "Median wait time",
+                               mapfunc=lambda rep, col, row: row[1]),
+        ], title="Summary since first revision")
+        firstrev.set_row([self.average_age(wait_reviewer, agefirst),
+                          self.median_age(wait_reviewer, agefirst)])
+        compound.add_report(firstrev)
+
+
+        nonnackedrev = ReportOutputList([
+            ReportOutputColumn("average", "Average wait time",
+                               mapfunc=lambda rep, col, row: row[0]),
+            ReportOutputColumn("median", "Median wait time",
+                               mapfunc=lambda rep, col, row: row[1]),
+        ], title="Summary since last revision without -1/-2 from reviewer")
+        nonnackedrev.set_row([self.average_age(wait_reviewer, agenonnacked),
+                              self.median_age(wait_reviewer, agenonnacked)])
+        compound.add_report(nonnackedrev)
+
+
+        def waitlastmap(rep, col, row):
+            return format_delta(row.get_current_age())
+
+        def waitlastsort(rep, col, row):
+            return row.get_current_age()
+
+        waitlastrev = self.new_table("Longest waiting since current revision")
+        waitlastrev.add_column(ReportOutputColumn("age", "Age",
+                                                  sortfunc=waitlastsort,
+                                                  mapfunc=waitlastmap))
+        waitlastrev.sortcol = "age"
+        waitlastrev.reverse = True
+        for change in self.get_longest_changes(wait_reviewer, changes, agecurrent, 5):
+            waitlastrev.add_row(change)
+        compound.add_report(waitlastrev)
+
+
+        def waitfirstmap(rep, col, row):
+            return format_delta(row.get_first_age())
+
+        def waitfirstsort(rep, col, row):
+            return row.get_first_age()
+
+        waitfirstrev = self.new_table("Longest waiting since first revision")
+        waitfirstrev.add_column(ReportOutputColumn("age", "Age",
+                                                   sortfunc=waitfirstsort,
+                                                   mapfunc=waitfirstmap))
+        waitfirstrev.sortcol = "age"
+        waitfirstrev.reverse = True
+        for change in self.get_longest_changes(wait_reviewer, changes, agefirst, 5):
+            waitfirstrev.add_row(change)
+        compound.add_report(waitfirstrev)
+
+
+        def waitnonnackedmap(rep, col, row):
+            return format_delta(row.get_reviewer_not_nacked_age())
+
+        def waitnonnackedsort(rep, col, row):
+            return row.get_reviewer_not_nacked_age()
+
+        waitnonnackedrev = self.new_table("Longest waiting since last revision without -1/-2 from reviewer")
+        waitnonnackedrev.add_column(ReportOutputColumn("age", "Age",
+                                                       sortfunc=waitnonnackedsort,
+                                                       mapfunc=waitnonnackedmap))
+        waitnonnackedrev.sortcol = "age"
+        waitnonnackedrev.reverse = True
+        for change in self.get_longest_changes(wait_reviewer, changes, agenonnacked, 5):
+            waitnonnackedrev.add_row(change)
+        compound.add_report(waitnonnackedrev)
+
+        return compound
