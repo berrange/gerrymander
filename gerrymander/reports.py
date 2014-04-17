@@ -560,7 +560,7 @@ class ReportChanges(ReportBaseChange):
 
     def __init__(self, client, projects=[], owners=[],
                  status=[], messages=[], branches=[], reviewers=[],
-                 approvals=[], files=[], usecolor=False):
+                 approvals=[], files=[], rawquery=None, usecolor=False):
         super(ReportChanges, self).__init__(client, usecolor)
         self.projects = projects
         self.owners = owners
@@ -570,6 +570,7 @@ class ReportChanges(ReportBaseChange):
         self.reviewers = reviewers
         self.approvals = approvals
         self.files = files
+        self.rawquery = rawquery
 
     def generate(self):
         needFiles = False
@@ -585,6 +586,7 @@ class ReportChanges(ReportBaseChange):
                                    "status": self.status,
                                    "reviewer": self.reviewers,
                                },
+                               rawquery=self.rawquery,
                                patches=OperationQuery.PATCHES_CURRENT,
                                approvals=True,
                                files=needFiles)
@@ -694,7 +696,7 @@ class ReportToDoListAnyones(ReportToDoList):
         '''
         super(ReportToDoListAnyones, self).__init__(client,
                                                     projects,
-                                                    usecolor)
+                                                    usecolor=usecolor)
         self.bots = bots
         self.username = username
 
@@ -715,7 +717,7 @@ class ReportToDoListNoones(ReportToDoList):
         '''
         super(ReportToDoListNoones, self).__init__(client,
                                                    projects,
-                                                   usecolor)
+                                                   usecolor=usecolor)
         self.bots = bots
 
     def filter(self, change):

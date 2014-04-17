@@ -592,6 +592,9 @@ class CommandChanges(CommandProject, CommandCaching, CommandReportTable):
                         "--approval", action="append", default=[],
                         help="Filter based on approval")
         self.add_option(parser, config,
+                        "--rawquery", default=None,
+                        help="Raw query string to pass through to gerrit")
+        self.add_option(parser, config,
                         "file", default=[], nargs="*",
                         help="File name matches")
 
@@ -604,6 +607,7 @@ class CommandChanges(CommandProject, CommandCaching, CommandReportTable):
                              messages=options.message,
                              owners=options.owner,
                              approvals=options.approval,
+                             rawquery=options.rawquery,
                              files=options.file,
                              usecolor=options.color)
 

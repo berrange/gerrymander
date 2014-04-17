@@ -35,9 +35,11 @@ class OperationQuery(OperationBase):
     STATUS_OPEN = "open"
     STATUS_CLOSED = "closed"
 
-    def __init__(self, client, terms={}, patches=PATCHES_NONE, approvals=False, files=False, comments=False):
+    def __init__(self, client, terms={}, rawquery=None, patches=PATCHES_NONE,
+                 approvals=False, files=False, comments=False):
         OperationBase.__init__(self, client)
         self.terms = terms
+        self.rawquery = rawquery
         self.patches = patches
         self.approvals = approvals
         self.files = files
@@ -68,6 +70,8 @@ class OperationQuery(OperationBase):
             clauses.append("limit:" + str(limit))
         if sortkey is not None:
             clauses.append("resume_sortkey:" + sortkey)
+        if self.rawquery is not None:
+            clauses.append("(" + self.rawquery + ")")
         terms = list(self.terms.keys())
         terms.sort()
         for term in terms:
