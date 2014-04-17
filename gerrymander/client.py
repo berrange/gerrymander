@@ -35,10 +35,11 @@ class ClientLive(object):
 
     def _run_async(self, argv):
         stdout = subprocess.PIPE
+        stderr = subprocess.PIPE
         LOG.debug("Running cmd %s" % " ".join(argv))
         sp = subprocess.Popen(argv,
                               stdout=stdout,
-                              stderr=sys.stderr,
+                              stderr=stderr,
                               stdin=None)
         return sp
 
@@ -69,7 +70,10 @@ class ClientLive(object):
                 LOG.exception("Failure processing %s", line)
 
         sp.wait()
-        return sp.returncode
+        if sp.returncode != 0:
+            msg = sp.stderr.readline()
+            raise Exception("Error running command %s: %s" %
+                            (args, msg))
 
     def run(self, cmdargv, cb):
         sp = self._run_async(self._build_argv(cmdargv))
@@ -151,7 +155,9 @@ class ClientCaching(ClientLive):
             sp.wait()
             if sp.returncode != 0:
                 os.unlink(file)
-                return sp.returncode
+                msg = sp.stderr.readline()
+                raise Exception("Error running command %s: %s" %
+                                (args, msg))
 
         sp = self._run_async(["cat", file])
-        return self._process(sp, cb)
+        self._process(sp, cb)

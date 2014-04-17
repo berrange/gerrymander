@@ -117,18 +117,14 @@ class OperationQuery(OperationBase):
         if limit is None:
             while c.gotany:
                 c.gotany = False
-                ret = self.client.run(self.get_args(500, c.sortkey), mycb)
-                if ret != 0:
-                    return ret
+                self.client.run(self.get_args(500, c.sortkey), mycb)
         else:
             while c.count < limit and c.gotany:
                 want = limit - c.count
                 if want > 500:
                     want = 500
                 c.gotany = False
-                ret = self.client.run(self.get_args(want, c.sortkey), mycb)
-                if ret != 0:
-                    return ret
+                self.client.run(self.get_args(want, c.sortkey), mycb)
         return 0
 
 
