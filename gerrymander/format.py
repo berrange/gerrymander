@@ -90,3 +90,9 @@ def format_color(text, usecolor=True, fg=None, bg=None, styles=[]):
     bits.append(text)
     bits.append(ESCAPE % STYLES["reset"])
     return "".join(bits)
+
+
+def format_title(text):
+    width = len(text)
+    underline = "-" * width
+    return text + "\n" + underline + "\n"

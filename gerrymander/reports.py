@@ -25,6 +25,7 @@ import xml.dom.minidom
 from gerrymander.operations import OperationQuery
 from gerrymander.model import ModelApproval
 from gerrymander.format import format_date
+from gerrymander.format import format_title
 
 LOG = logging.getLogger(__name__)
 
@@ -75,29 +76,135 @@ class ReportOutput(object):
         if mode == ReportOutput.DISPLAY_MODE_TEXT:
             stream.write(self.to_text())
         elif mode == ReportOutput.DISPLAY_MODE_XML:
-            stream.write(self.to_xml())
+            impl = xml.dom.minidom.getDOMImplementation()
+            doc = impl.createDocument(None, "report", None)
+            self.to_xml(doc, doc.documentElement)
+            stream.write(doc.toprettyxml())
         elif mode == ReportOutput.DISPLAY_MODE_JSON:
-            stream.write(self.to_json())
+            doc = []
+            self.to_json(doc)
+            stream.write(json.dumps(doc, indent="  ") + "\n")
         else:
             raise Exception("Unknown display mode '%s'" % mode)
 
     def to_text(self):
         raise NotImplementedError("Subclass should implement the 'to_text' method")
 
-    def to_xml(self):
+    def to_xml(self, root):
         raise NotImplementedError("Subclass should implement the 'to_xml' method")
 
-    def to_json(self):
+    def to_json(self, root):
         raise NotImplementedError("Subclass should implement the 'to_json' method")
 
 
+class ReportOutputCompound(ReportOutput):
+
+    def __init__(self):
+        self.report = []
+
+    def add_report(self, report):
+        self.report.append(report)
+
+    def to_text(self):
+        blocks = []
+        for report in self.report:
+            blocks.append(report.to_text())
+        return "\n".join(blocks)
+
+    def to_json(self, root):
+        for report in self.report:
+            report.to_json(root)
+
+    def to_xml(self, doc, root):
+        for report in self.report:
+            report.to_xml(doc, root)
+
+
+class ReportOutputList(ReportOutput):
+    def __init__(self, columns, title=None):
+        self.columns = columns
+        self.row = {}
+        self.title = title
+
+    def set_row(self, row):
+        self.row = row
+
+    def to_xml(self, doc, root):
+        lst = doc.createElement("list")
+        root.appendChild(lst)
+        if self.title is not None:
+            title = doc.createElement("title")
+            title.appendChild(doc.createTextNode(self.title))
+            lst.appendChild(title)
+        headers = doc.createElement("headers")
+        content = doc.createElement("content")
+        lst.appendChild(headers)
+        lst.appendChild(content)
+
+        for col in self.columns:
+            if col.visible:
+                xmlcol = doc.createElement(col.key)
+                xmlcol.appendChild(doc.createTextNode(col.label))
+                headers.appendChild(xmlcol)
+
+        for col in self.columns:
+            if col.visible:
+                xmlfield = doc.createElement(col.key)
+                xmlfield.appendChild(doc.createTextNode(col.get_value(self, self.row)))
+                content.appendChild(xmlfield)
+
+    def to_json(self, root):
+        headers = {}
+        for col in self.columns:
+            if col.visible:
+                headers[col.key] = col.label
+
+        content = {}
+        for col in self.columns:
+            if col.visible:
+                content[col.key] = col.get_value(self, self.row)
+
+        node = {
+            "list": {
+                "headers": headers,
+                "content": content
+            }
+        }
+        if self.title is not None:
+            node["list"]["title"] = self.title
+        root.append(node)
+
+
+    def to_text(self):
+        labels = []
+        width = 1
+        for col in self.columns:
+            if col.visible:
+                if len(col.label) > width:
+                    width = len(col.label)
+                labels.append(col.label)
+
+        fmt = "  %" + str(width) + "s: %s"
+        lines = []
+        for col in self.columns:
+            if col.visible:
+                line = fmt % (col.label, col.get_value(self, self.row))
+            lines.append(line)
+
+        prolog = ""
+        if self.title is not None:
+            prolog = format_title(self.title) + "\n"
+        return prolog + "\n".join(lines) + "\n"
+
+
 class ReportOutputTable(ReportOutput):
-    def __init__(self, columns, sortcol, reverse, limit):
+    def __init__(self, columns, sortcol, reverse, limit, title=None):
         self.columns = columns
         self.rows = []
         self.sortcol = sortcol
         self.reverse = reverse
         self.limit = limit
+        self.title = title
 
     def add_row(self, row):
         self.rows.append(row)
@@ -112,16 +219,19 @@ class ReportOutputTable(ReportOutput):
             self.rows.sort(key = lambda item: sortcol.get_sort_value(self, item),
                            reverse=self.reverse)
 
-    def to_xml(self):
+    def to_xml(self, doc, root):
         self.sort_rows()
 
-        impl = xml.dom.minidom.getDOMImplementation()
-        doc = impl.createDocument(None, "table", None)
-        root = doc.documentElement
+        table = doc.createElement("table")
+        root.appendChild(table)
+        if self.title is not None:
+            title = doc.createElement("title")
+            title.appendChild(doc.createTextNode(self.title))
+            table.appendChild(title)
         headers = doc.createElement("headers")
         content = doc.createElement("content")
-        root.appendChild(headers)
-        root.appendChild(content)
+        table.appendChild(headers)
+        table.appendChild(content)
 
         for col in self.columns:
             if col.visible:
@@ -137,15 +247,13 @@ class ReportOutputTable(ReportOutput):
             for col in self.columns:
                 if col.visible:
                     xmlfield = doc.createElement(col.key)
-                    print (str(col.key))
-                    print (str(row))
                     xmlfield.appendChild(doc.createTextNode(col.get_value(self, row)))
                     xmlrow.appendChild(xmlfield)
             content.appendChild(xmlrow)
 
-        return doc.toprettyxml()
+        return doc
 
-    def to_json(self):
+    def to_json(self, root):
         self.sort_rows()
 
         headers = {}
@@ -164,12 +272,15 @@ class ReportOutputTable(ReportOutput):
                     data[col.key] = col.get_value(self, row)
             content.append(data)
 
-        doc = {
-            "headers": headers,
-            "content": content
+        node = {
+            "table": {
+                "headers": headers,
+                "content": content
+            }
         }
-
-        return json.dumps(doc, indent="  ") + "\n"
+        if self.title is not None:
+            node["table"]["title"] = self.title
+        root.append(node)
 
     def to_text(self):
         self.sort_rows()
@@ -194,7 +305,10 @@ class ReportOutputTable(ReportOutput):
                     data.append(col.get_value(self, row))
             table.add_row(data)
 
-        return str(table) + "\n"
+        prolog = ""
+        if self.title is not None:
+            prolog = format_title(self.title) + "\n"
+        return prolog + str(table) + "\n"
 
 
 class Report(object):
@@ -246,8 +360,8 @@ class ReportTable(Report):
     def set_data_limit(self, limit):
         self.limit = limit
 
-    def new_table(self):
-        return ReportOutputTable(self.columns, self.sort, self.reverse, self.limit)
+    def new_table(self, title=None):
+        return ReportOutputTable(self.columns, self.sort, self.reverse, self.limit, title)
 
 
 class ReportPatchReviewStats(ReportTable):
@@ -340,7 +454,10 @@ class ReportPatchReviewStats(ReportTable):
             cur = reviewers[reviewer]['votes'][votes[str(review.value)]]
             reviewers[reviewer]['votes'][votes[str(review.value)]] = cur + 1
 
-        table = self.new_table()
+        compound = ReportOutputCompound()
+        table = self.new_table("Review statistics")
+        compound.add_report(table)
+
         for user, votes in reviewers.items():
             userteam = ""
             for team in self.teams.keys():
@@ -348,7 +465,17 @@ class ReportPatchReviewStats(ReportTable):
                     userteam = team
 
             table.add_row([user, votes, userteam])
-        return table
+
+        summary = ReportOutputList([
+            ReportOutputColumn("nreviews", "Total reviews", format="%d",
+                               mapfunc=lambda rep, col, row: row[0]),
+            ReportOutputColumn("nreviewers", "Total rviewers", format="%d",
+                               mapfunc=lambda rep, col, row: row[1])
+        ], title="Review summary")
+        summary.set_row([len(reviews), len(reviewers.keys())])
+        compound.add_report(summary)
+
+        return compound
 
 
 class ReportBaseChange(ReportTable):
@@ -445,7 +572,7 @@ class ReportChanges(ReportBaseChange):
                             return True
             return False
 
-        table = self.new_table()
+        table = self.new_table("Changes")
         def querycb(change):
             if match_files(change):
                 table.add_row(change)
@@ -476,7 +603,7 @@ class ReportToDoList(ReportBaseChange):
                                patches=OperationQuery.PATCHES_ALL,
                                approvals=True)
 
-        table = self.new_table()
+        table = self.new_table("Changes To Do List")
         def querycb(change):
             if self.filter(change):
                 table.add_row(change)
