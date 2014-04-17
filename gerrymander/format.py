@@ -21,27 +21,29 @@ def format_date(then):
     try:
         now = time.time()
         delta = now - then
-        days = delta / (60 * 60 * 24)
-        hours = delta / (60 * 60)
-        mins = delta / 60
-
-        if days == 1:
-            return "%d day" % days
-        elif days > 1:
-            return "%d days" % days
-        elif hours == 1:
-            return "%d hour" % hours
-        elif hours > 1:
-            return "%d hours" % hours
-        elif mins == 1:
-            return "%d min" % mins
-        elif mins > 1:
-            return "%d mins" % mins
-        else:
-            return "just now"
-
+        return format_delta(delta)
     except (TypeError, ValueError):
         return ""
+
+def format_delta(delta):
+    days = delta / (60 * 60 * 24)
+    hours = delta / (60 * 60)
+    mins = delta / 60
+
+    if days == 1:
+        return "%d day" % days
+    elif days > 1:
+        return "%d days" % days
+    elif hours == 1:
+        return "%d hour" % hours
+    elif hours > 1:
+        return "%d hours" % hours
+    elif mins == 1:
+        return "%d min" % mins
+    elif mins > 1:
+        return "%d mins" % mins
+    else:
+        return "just now"
 
 
 STYLES = {
