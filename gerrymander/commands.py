@@ -429,6 +429,9 @@ class CommandReport(Command):
         self.add_option(parser, config,
                         "-m", "--mode", default=ReportOutput.DISPLAY_MODE_TEXT,
                         help="Display output in 'text', 'json', 'xml'")
+        self.add_option(parser, config,
+                        "--color", default=False, action="store_true",
+                        help="Use terminal color highlighting")
 
     def get_report(self, config, client, options):
         raise NotImplementedError("subclass must override get_query")
@@ -524,7 +527,8 @@ class CommandPatchReviewStats(CommandProject, CommandCaching, CommandReportTable
         return ReportPatchReviewStats(client,
                                       self.get_projects(config, options, True),
                                       int(options.days),
-                                      teams)
+                                      teams,
+                                      usecolor=options.color)
 
     def run(self, config, client, options):
         return super(CommandPatchReviewStats, self).run(config, client, options)
@@ -551,7 +555,8 @@ class CommandOpenReviewStats(CommandProject, CommandCaching, CommandReportTable)
         return ReportOpenReviewStats(client,
                                      self.get_projects(config, options, True),
                                      options.branch,
-                                     int(options.days))
+                                     int(options.days),
+                                     usecolor=options.color)
 
     def run(self, config, client, options):
         if options.limit is None:
@@ -599,7 +604,8 @@ class CommandChanges(CommandProject, CommandCaching, CommandReportTable):
                              messages=options.message,
                              owners=options.owner,
                              approvals=options.approval,
-                             files=options.file)
+                             files=options.file,
+                             usecolor=options.color)
 
 class CommandToDoMine(CommandProject, CommandCaching, CommandReportTable):
 
@@ -614,7 +620,8 @@ class CommandToDoMine(CommandProject, CommandCaching, CommandReportTable):
 
         return ReportToDoListMine(client,
                                   username=username,
-                                  projects=self.get_projects(config, options))
+                                  projects=self.get_projects(config, options),
+                                  usecolor=options.color)
 
 
 class CommandToDoOthers(CommandProject, CommandCaching, CommandReportTable):
@@ -629,7 +636,8 @@ class CommandToDoOthers(CommandProject, CommandCaching, CommandReportTable):
 
         return ReportToDoListOthers(client,
                                     username=username,
-                                    projects=self.get_projects(config, options))
+                                    projects=self.get_projects(config, options),
+                                    usecolor=options.color)
 
 
 class CommandToDoAnyones(CommandProject, CommandCaching, CommandReportTable):
@@ -645,7 +653,8 @@ class CommandToDoAnyones(CommandProject, CommandCaching, CommandReportTable):
         return ReportToDoListAnyones(client,
                                      username=username,
                                      bots=config.get_organization_bots(),
-                                     projects=self.get_projects(config, options))
+                                     projects=self.get_projects(config, options),
+                                     usecolor=options.color)
 
 
 class CommandToDoNoones(CommandProject, CommandCaching, CommandReportTable):
@@ -656,7 +665,8 @@ class CommandToDoNoones(CommandProject, CommandCaching, CommandReportTable):
     def get_report(self, config, client, options):
         return ReportToDoListNoones(client,
                                     bots=config.get_organization_bots(),
-                                    projects=self.get_projects(config, options))
+                                    projects=self.get_projects(config, options),
+                                    usecolor=options.color)
 
 
 class CommandComments(CommandCaching):

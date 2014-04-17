@@ -27,6 +27,7 @@ from gerrymander.model import ModelApproval
 from gerrymander.format import format_date
 from gerrymander.format import format_delta
 from gerrymander.format import format_title
+from gerrymander.format import format_color
 
 LOG = logging.getLogger(__name__)
 
@@ -72,6 +73,10 @@ class ReportOutput(object):
     DISPLAY_MODE_TEXT = "text"
     DISPLAY_MODE_XML = "xml"
     DISPLAY_MODE_JSON = "json"
+
+    def __init__(self, usecolor=False):
+        super(ReportOutput, self).__init__()
+        self.usecolor = usecolor
 
     def display(self, mode, stream=sys.stdout):
         if mode == ReportOutput.DISPLAY_MODE_TEXT:
@@ -122,7 +127,8 @@ class ReportOutputCompound(ReportOutput):
 
 
 class ReportOutputList(ReportOutput):
-    def __init__(self, columns, title=None):
+    def __init__(self, columns, title=None, usecolor=False):
+        super(ReportOutputList, self).__init__(usecolor)
         self.columns = columns
         self.row = {}
         self.title = title
@@ -199,7 +205,8 @@ class ReportOutputList(ReportOutput):
 
 
 class ReportOutputTable(ReportOutput):
-    def __init__(self, columns, sortcol, reverse, limit, title=None):
+    def __init__(self, columns, sortcol, reverse, limit, title=None, usecolor=False):
+        super(ReportOutputTable, self).__init__(usecolor)
         self.columns = list(columns)
         self.rows = []
         self.sortcol = sortcol
@@ -365,7 +372,9 @@ class ReportTable(Report):
         self.limit = limit
 
     def new_table(self, title=None):
-        return ReportOutputTable(self.columns, self.sort, self.reverse, self.limit, title)
+        return ReportOutputTable(self.columns, self.sort,
+                                 self.reverse, self.limit,
+                                 title, self.usecolor)
 
 
 class ReportPatchReviewStats(ReportTable):
@@ -399,10 +408,10 @@ class ReportPatchReviewStats(ReportTable):
         ReportOutputColumn("ratio", "+/-", ratio_mapfunc, format="%0.0lf%%", align=ReportOutputColumn.ALIGN_RIGHT),
     ]
 
-    def __init__(self, client, projects, maxagedays=30, teams={}):
+    def __init__(self, client, projects, maxagedays=30, teams={}, usecolor=False):
         super(ReportPatchReviewStats, self).__init__(client,
                                                      ReportPatchReviewStats.COLUMNS,
-                                                     sort="reviews", reverse=True)
+                                                     sort="reviews", reverse=True, usecolor=usecolor)
         self.projects = projects
         self.teams = teams
         self.maxagedays = maxagedays
@@ -489,15 +498,27 @@ class ReportBaseChange(ReportTable):
             LOG.error("No patch")
             return ""
         vals = {}
+        neg=False
+        plus=False
         for approval in patch.approvals:
             got_type = approval.action[0:1].lower()
             if got_type not in vals:
                 vals[got_type] = []
             vals[got_type].append(str(approval.value))
+            if approval.action == ModelApproval.ACTION_REVIEWED and approval.value > 1:
+                plus=True
+            if approval.value < 0:
+                neg=True
         keys = list(vals.keys())
         keys.sort(reverse=True)
-        return " ".join(map(lambda val: "%s=%s" % (val,
+        data = " ".join(map(lambda val: "%s=%s" % (val,
                                                    ",".join(vals[val])), keys))
+        if neg and rep.usecolor:
+            return format_color(data, fg="red")
+        elif plus and rep.usecolor:
+            return format_color(data, fg="green")
+        else:
+            return data
 
     def user_mapfunc(rep, col, row):
         if not row.owner or not row.owner.username:
@@ -529,16 +550,18 @@ class ReportBaseChange(ReportTable):
         ReportOutputColumn("approvals", "Approvals", approvals_mapfunc),
     ]
 
-    def __init__(self, client):
+    def __init__(self, client, usecolor=False):
         super(ReportBaseChange, self).__init__(client, ReportBaseChange.COLUMNS,
                                                sort="createdOn", reverse=False)
+        self.usecolor = usecolor
+
 
 class ReportChanges(ReportBaseChange):
 
     def __init__(self, client, projects=[], owners=[],
                  status=[], messages=[], branches=[], reviewers=[],
-                 approvals=[], files=[]):
-        super(ReportChanges, self).__init__(client)
+                 approvals=[], files=[], usecolor=False):
+        super(ReportChanges, self).__init__(client, usecolor)
         self.projects = projects
         self.owners = owners
         self.status = status
@@ -588,8 +611,8 @@ class ReportChanges(ReportBaseChange):
 
 class ReportToDoList(ReportBaseChange):
 
-    def __init__(self, client, projects=[], reviewers=[]):
-        super(ReportToDoList, self).__init__(client)
+    def __init__(self, client, projects=[], reviewers=[], usecolor=False):
+        super(ReportToDoList, self).__init__(client, usecolor)
 
         self.projects = projects
         self.reviewers = reviewers
@@ -621,7 +644,7 @@ class ReportToDoList(ReportBaseChange):
 
 class ReportToDoListMine(ReportToDoList):
 
-    def __init__(self, client, username, projects=[]):
+    def __init__(self, client, username, projects=[], usecolor=False):
         '''
         Report to provide a list of changes 'username' has
         reviewed an older version of the patch, and needs
@@ -629,7 +652,8 @@ class ReportToDoListMine(ReportToDoList):
         '''
         super(ReportToDoListMine, self).__init__(client,
                                                  projects,
-                                                 reviewers=[ username ])
+                                                 reviewers=[ username ],
+                                                 usecolor=usecolor)
         self.username = username
 
     def filter(self, change):
@@ -639,7 +663,7 @@ class ReportToDoListMine(ReportToDoList):
 
 
 class ReportToDoListOthers(ReportToDoList):
-    def __init__(self, client, username, bots=[], projects=[]):
+    def __init__(self, client, username, bots=[], projects=[], usecolor=False):
         '''
         Report to provide a list of changes where 'username' has
         never reviewed, but at least one other non-bot user has
@@ -647,7 +671,8 @@ class ReportToDoListOthers(ReportToDoList):
         '''
         super(ReportToDoListOthers, self).__init__(client,
                                                    projects,
-                                                   reviewers=[ "!", username ])
+                                                   reviewers=[ "!", username ],
+                                                   usecolor=usecolor)
         self.bots = bots
 
     def filter(self, change):
@@ -662,13 +687,14 @@ class ReportToDoListOthers(ReportToDoList):
 
 class ReportToDoListAnyones(ReportToDoList):
 
-    def __init__(self, client, username, bots=[], projects=[]):
+    def __init__(self, client, username, bots=[], projects=[], usecolor=False):
         '''
         Report to provide a list of changes where at least
         one other non-bot user has provided review
         '''
         super(ReportToDoListAnyones, self).__init__(client,
-                                                    projects)
+                                                    projects,
+                                                    usecolor)
         self.bots = bots
         self.username = username
 
@@ -682,13 +708,14 @@ class ReportToDoListAnyones(ReportToDoList):
 
 class ReportToDoListNoones(ReportToDoList):
 
-    def __init__(self, client, bots=[], projects=[]):
+    def __init__(self, client, bots=[], projects=[], usecolor=False):
         '''
         Report to provide a list of changes that no one
         has ever reviewed
         '''
         super(ReportToDoListNoones, self).__init__(client,
-                                                   projects)
+                                                   projects,
+                                                   usecolor)
         self.bots = bots
 
     def filter(self, change):
@@ -699,8 +726,8 @@ class ReportToDoListNoones(ReportToDoList):
 
 class ReportOpenReviewStats(ReportBaseChange):
 
-    def __init__(self, client, projects, branch="master", days=7):
-        super(ReportOpenReviewStats, self).__init__(client)
+    def __init__(self, client, projects, branch="master", days=7, usecolor=False):
+        super(ReportOpenReviewStats, self).__init__(client, usecolor)
         self.projects = projects
         self.branch = branch
         self.days = days
