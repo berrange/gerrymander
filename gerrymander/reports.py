@@ -43,10 +43,17 @@ class ReportColumn(object):
 
     def get_value(self, report, row):
         val = self.mapfunc(report, self.key, row)
+        if self.format is not None:
+            val = self.format % val
+        elif val is None:
+            val = ""
+
+        if type(val) != str:
+            val = str(val)
+
         if self.truncate and len(val) > self.truncate:
             val = val[0:self.truncate] + "..."
-        elif self.format is not None:
-            val = self.format % val
+
         return val
 
     def get_sort_value(self, report, row):
