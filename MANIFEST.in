@@ -1,5 +1,8 @@
+include ChangeLog
+include AUTHORS
 include LICENSE
 include README
+include autobuild.sh
 include MANIFEST.in
 include setup.py
 include scripts/gerrymander

@@ -69,11 +69,11 @@ CFLAGS="$RPM_OPT_FLAGS" %{__python3} setup.py build
 %install
 %if %{with_python2}
 %{__python} setup.py install --skip-build --root=%{buildroot}
-rm -f %{buildroot}%{python_sitelib}/*egg-info
+rm -rf %{buildroot}%{python_sitelib}/*egg-info
 %endif
 %if %{with_python3}
 %{__python3} setup.py install --skip-build --root=%{buildroot}
-rm -f %{buildroot}%{python3_sitelib}/*egg-info
+rm -rf %{buildroot}%{python3_sitelib}/*egg-info
 %endif
 
 %check

@@ -1,6 +1,7 @@
 
-from distutils.core import setup, Extension, Command
-from distutils.command.sdist import sdist
+from setuptools import setup
+from setuptools import Command
+from distutils.command.build import build
 from distutils.util import get_platform
 
 import sys
@@ -8,19 +9,10 @@ import os
 import re
 import time
 
-class my_sdist(sdist):
-    user_options = sdist.user_options
+class my_build(build):
+    user_options = build.user_options
 
-    description = "Update gerrymander.spec; build sdist-tarball."
-
-    def initialize_options(self):
-        self.snapshot = None
-        sdist.initialize_options(self)
-
-    def finalize_options(self):
-        if self.snapshot is not None:
-            self.snapshot = 1
-        sdist.finalize_options(self)
+    description = "build everything needed to install"
 
     def gen_rpm_spec(self):
         f1 = open('gerrymander.spec.in', 'r')
@@ -75,9 +67,9 @@ class my_sdist(sdist):
                 self.gen_authors()
                 self.gen_changelog()
 
-                sdist.run(self)
+                build.run(self)
 
-            finally:
+            except:
                 files = ["gerrymander.spec",
                          "AUTHORS",
                          "ChangeLog"]
@@ -85,27 +77,7 @@ class my_sdist(sdist):
                     if os.path.exists(f):
                         os.unlink(f)
         else:
-            sdist.run(self)
-
-class my_rpm(Command):
-    user_options = []
-
-    description = "Build src and noarch rpms."
-
-    def initialize_options(self):
-        pass
-
-    def finalize_options(self):
-        pass
-
-    def run(self):
-        """
-        Run sdist, then 'rpmbuild' the tar.gz
-        """
-
-        self.run_command('sdist')
-        os.system('rpmbuild -ta --clean dist/gerrymander-%s.tar.gz' %
-                  self.distribution.get_version())
+            build.run(self)
 
 
 class my_test(Command):
@@ -154,17 +126,20 @@ class my_test(Command):
 setup(
     name="gerrymander",
     version="1.0",
+    description="A client API and command line tool for gerrit",
+    long_description="Gerrymander provides a set of APIs and command "
+    "line tool for interacting with the gerrit code review system",
     author="Daniel P. Berrange",
     author_email="dan-gerrymander@berrange.com",
     license="ASL 2.0",
-    url="http://gitorious.org",
+    url="https://github.com/berrange/gerrymander",
     scripts=([
         "scripts/gerrymander",
         ]),
     packages=["gerrymander"],
+    install_requires=["prettytable>=0.5"],
     cmdclass = {
-          'sdist': my_sdist,
-          'rpm': my_rpm,
+          'build': my_build,
           'test': my_test
     },
 )

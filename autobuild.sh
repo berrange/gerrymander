@@ -7,9 +7,10 @@ set -ve
 rm -rf MANIFEST dist build
 
 
+python2 setup.py build
+
 python2 setup.py sdist
 
-python2 setup.py build
 python2 setup.py test
 python2 setup.py install --root="$AUTOBUILD_INSTALL_ROOT"
 

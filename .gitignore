@@ -1,4 +1,8 @@
 *~
+AUTHORS
+ChangeLog
+gerrymander.spec
+gerrymander.egg-info/
 __pycache__/
 MANIFEST
 build/
