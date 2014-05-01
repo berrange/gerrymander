@@ -782,7 +782,7 @@ class CommandComments(CommandCaching):
                                {
                                    "change": [ change ],
                                },
-                               OperationQuery.PATCHES_ALL,
+                               patches=OperationQuery.PATCHES_ALL,
                                approvals=True,
                                files=True,
                                comments=True)
