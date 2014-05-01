@@ -56,7 +56,7 @@ class ClientLive(object):
         argv.extend(cmdargv)
         return argv
 
-    def _process(self, sp, cb):
+    def _process(self, sp, argv, cb):
         while True:
             line = sp.stdout.readline()
             if not line:
@@ -71,13 +71,21 @@ class ClientLive(object):
 
         sp.wait()
         if sp.returncode != 0:
-            msg = sp.stderr.readline()
+            lines = []
+            while True:
+                line = sp.stderr.readline()
+                if not line:
+                    break
+                lines.append(line.decode("UTF-8"))
+            msg = "".join(lines)
+            args = " ".join(argv)
             raise Exception("Error running command %s: %s" %
                             (args, msg))
 
     def run(self, cmdargv, cb):
-        sp = self._run_async(self._build_argv(cmdargv))
-        return self._process(sp, cb)
+        argv = self._build_argv(cmdargv)
+        sp = self._run_async(argv)
+        return self._process(sp, argv, cb)
 
 
 class ClientCachingLock(object):
@@ -155,9 +163,15 @@ class ClientCaching(ClientLive):
             sp.wait()
             if sp.returncode != 0:
                 os.unlink(file)
-                msg = sp.stderr.readline()
+                lines = []
+                while True:
+                    line = sp.stderr.readline()
+                    if not line:
+                        break
+                    lines.append(line.decode("UTF-8"))
+                msg = "".join(lines)
                 raise Exception("Error running command %s: %s" %
                                 (args, msg))
 
         sp = self._run_async(["cat", file])
-        self._process(sp, cb)
+        self._process(sp, argv, cb)
