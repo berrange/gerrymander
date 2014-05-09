@@ -89,7 +89,7 @@ class ReportOutput(object):
         elif mode == ReportOutput.DISPLAY_MODE_JSON:
             doc = []
             self.to_json(doc)
-            stream.write(json.dumps(doc, indent="  ") + "\n")
+            stream.write(json.dumps(doc, indent=2) + "\n")
         else:
             raise Exception("Unknown display mode '%s'" % mode)
 
