@@ -45,13 +45,14 @@ class ClientLive(object):
 
     def _build_argv(self, cmdargv):
         argv = ['ssh']
-        if self.username is not None:
-            argv.extend(["-u", self.username])
         if self.port:
             argv.extend(["-p", str(self.port)])
         if self.keyfile and os.path.isfile(self.keyfile):
             argv.extend(['-i', str(self.keyfile)])
-        argv.extend([self.hostname])
+        if self.username is not None:
+            argv.extend(["%s@%s" % (self.username, self.hostname)])
+        else:
+            argv.extend([self.hostname])
         argv.extend(["gerrit"])
         argv.extend(cmdargv)
         return argv
