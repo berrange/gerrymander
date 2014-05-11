@@ -663,7 +663,7 @@ class CommandToDoAnyones(CommandProject, CommandCaching, CommandReportTable):
 
 class CommandToDoNoones(CommandProject, CommandCaching, CommandReportTable):
 
-    def __init__(self, name="todo-noones", help="List of changes on one has looked at yet"):
+    def __init__(self, name="todo-noones", help="List of changes no one has looked at yet"):
         super(CommandToDoNoones, self).__init__(name, help)
 
     def get_report(self, config, client, options):
