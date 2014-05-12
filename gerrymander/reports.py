@@ -411,10 +411,11 @@ class ReportPatchReviewStats(ReportTable):
     def __init__(self, client, projects, maxagedays=30, teams={}, usecolor=False):
         super(ReportPatchReviewStats, self).__init__(client,
                                                      ReportPatchReviewStats.COLUMNS,
-                                                     sort="reviews", reverse=True, usecolor=usecolor)
+                                                     sort="reviews", reverse=True)
         self.projects = projects
         self.teams = teams
         self.maxagedays = maxagedays
+        self.usecolor = usecolor
 
     def generate(self):
         # We could query all projects at once, but if we do them
