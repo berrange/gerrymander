@@ -55,8 +55,8 @@ class ModelFile(ModelBase):
 
 
 class ModelApproval(ModelBase):
-    ACTION_VERIFIED = "VRIF"
-    ACTION_REVIEWED = "CRVW"
+    ACTION_VERIFIED = "Verified"
+    ACTION_REVIEWED = "Code-Review"
     ACTION_APPROVED = "APRV"
     ACTION_SUBMITTED = "SUBM"
 
