@@ -50,7 +50,7 @@ JSON_CHANGE='''
             "createdOn": 1396715237,
             "approvals": [
                 {
-                    "type": "VRIF",
+                    "type": "Verified",
                     "description": "Verified",
                     "value": "-1",
                     "grantedOn": 1396715281,
@@ -73,7 +73,7 @@ JSON_CHANGE='''
             "createdOn": 1396716807,
             "approvals": [
                 {
-                    "type": "VRIF",
+                    "type": "Verified",
                     "description": "Verified",
                     "value": "1",
                     "grantedOn": 1397487649,
