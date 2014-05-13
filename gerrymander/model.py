@@ -383,6 +383,8 @@ class ModelEvent(ModelBase):
             return ModelEventChangeRestore.from_json(data)
         elif data["type"] == "ref-updated":
             pass
+        elif data["type"] == "reviewed-added":
+            pass
         else:
             raise Exception("Unknown event '%s'" % data["type"])
 
