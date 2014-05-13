@@ -536,7 +536,7 @@ class CommandPatchReviewStats(CommandProject, CommandCaching, CommandReportTable
 
 class CommandOpenReviewStats(CommandProject, CommandCaching, CommandReportTable):
 
-    def __init__(self, name="openreviewstats", help="Statistics on open patch reviewss"):
+    def __init__(self, name="openreviewstats", help="Statistics on open patch reviews"):
         super(CommandOpenReviewStats, self).__init__(name, help)
         self.teams = {}
         self.set_long_cache(True)
