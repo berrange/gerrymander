@@ -112,7 +112,7 @@ class CommandConfig(object):
     def get_cache_directory(self):
         if not self.config.has_option("cache", "directory"):
             return os.path.expanduser("~/.gerrymander.d/cache")
-        return self.config.get("cache", "directory")
+        return os.path.expanduser(self.config.get("cache", "directory"))
 
     def get_organization_groups(self):
         if not self.config.has_option("organization", "groups"):
