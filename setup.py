@@ -34,7 +34,7 @@ class my_build(build):
         f1 = open('AUTHORS.in', 'r')
         f2 = open('AUTHORS', 'w')
         for line in f1:
-            f2.write(line.replace('@AUTHORS@', "\n".join(authors)))
+            f2.write(line.replace('@AUTHORS@', "\n".join(set(authors))))
         f1.close()
         f2.close()
 
