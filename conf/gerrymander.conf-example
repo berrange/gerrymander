@@ -70,8 +70,8 @@
 #[alias-nova-changes]
 # The name of the original command
 #basecmd=changes
-# A description for the new command
-#description=Nova open changes
+# A help text for the new command
+#help=Nova open changes
 
 
 # Each command line tool can have the default values for
