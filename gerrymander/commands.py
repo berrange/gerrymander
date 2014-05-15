@@ -48,7 +48,7 @@ except:
 class CommandConfig(object):
 
     def __init__(self, filename):
-        self.filename = filename
+        self.filename = os.path.expanduser(filename)
         self.config = configparser.ConfigParser()
         self.config.read([self.filename])
 
