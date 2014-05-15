@@ -1,6 +1,16 @@
        Gerrymander News
        ================
 
+Release 1.1 - "Compulsory serving of asparagus at breakfast" - 2014-05-15
+-------------------------------------------------------------------------
+
+ * Fix syntax for passing username to ssh
+ * Fix syntax error in patch review stats reprot
+ * Fix misc typos in help / example configs
+ * Ignore unexpected change type
+ * Expand ~ in config file paths
+ * Avoid duplicate names in AUTHORS file
+
 Release 1.0 - "A dachshund named Colin" - 2014-05-09
 ----------------------------------------------------
 

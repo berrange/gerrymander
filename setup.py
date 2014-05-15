@@ -125,7 +125,7 @@ class my_test(Command):
 
 setup(
     name="gerrymander",
-    version="1.0",
+    version="1.1",
     description="A client API and command line tool for gerrit",
     long_description="Gerrymander provides a set of APIs and command "
     "line tool for interacting with the gerrit code review system",
