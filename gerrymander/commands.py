@@ -768,8 +768,13 @@ class CommandComments(CommandCaching):
             comments.extend(patch.comments)
 
             prefix = "Patch Set %d" % patch.number
+            abandoned = 0
             for comment in change.comments:
                 if comment.message.startswith(prefix):
+                    comments.append(comment)
+                    if comment.message.startswith(prefix + ": Abandoned"):
+                        abandoned = patch.number
+                elif comment.message.startswith("Restored") and abandoned == patch.number:
                     comments.append(comment)
 
             CommandComments.format_comments(comments, bots, usecolor)
