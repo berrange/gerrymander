@@ -190,7 +190,7 @@ class Command(object):
             else:
                 kwargs["default"] = config.get_option_string(section, name)
 
-        parser.add_argument(*args, **kwargs)
+        return parser.add_argument(*args, **kwargs)
 
 
     def add_options(self, parser, config):
@@ -454,9 +454,9 @@ class CommandReportTable(CommandReport):
                         "-l", "--limit", default=None,
                         help="Limit to N results")
 
-        self.add_option(parser, config,
-                        "--sort", default=None,
-                        help="Set the sort field")
+        self.store_action = self.add_option(parser, config,
+                                            "--sort", default=None,
+                                            help="Set the sort field")
         self.add_option(parser, config,
                         "--field", default=[],
                         action="append",
@@ -597,6 +597,7 @@ class CommandChanges(CommandProject, CommandCaching, CommandReportTable):
         self.add_option(parser, config,
                         "file", default=[], nargs="*",
                         help="File name matches")
+        self.store_action.choices = [c.key for c in ReportChanges.COLUMNS]
 
     def get_report(self, config, client, options):
         return ReportChanges(client,
