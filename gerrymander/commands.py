@@ -32,6 +32,7 @@ from gerrymander.model import ModelEventChangeMerge
 from gerrymander.model import ModelEventChangeAbandon
 from gerrymander.model import ModelEventChangeRestore
 from gerrymander.model import ModelApproval
+from gerrymander.pager import start_pager, stop_pager
 
 import getpass
 import os
@@ -859,6 +860,13 @@ class CommandTool(object):
         return CommandConfig(options.config)
 
     def execute(self, argv):
+        start_pager()
+        try:
+            self._execute(argv)
+        finally:
+            stop_pager()
+
+    def _execute(self, argv):
         miniparser = argparse.ArgumentParser(add_help=False)
         miniparser.add_argument("-c", "--config", default=os.path.expanduser("~/.gerrymander"),
                                 help=("Override config file (default %s)" %
