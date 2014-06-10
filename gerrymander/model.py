@@ -382,9 +382,11 @@ class ModelEvent(ModelBase):
         elif data["type"] == "change-restored":
             return ModelEventChangeRestore.from_json(data)
         elif data["type"] == "ref-updated":
-            pass
-        elif data["type"] == "reviewed-added":
-            pass
+            return ModelEventRefUpdated.from_json(data)
+        elif data["type"] == "reviewer-added":
+            return ModelEventReviewerAdded.from_json(data)
+        elif data["type"] == "topic-changed":
+            return ModelEventTopicChanged.from_json(data)
         else:
             raise Exception("Unknown event '%s'" % data["type"])
 
@@ -456,3 +458,38 @@ class ModelEventChangeRestore(ModelEvent):
         change = ModelChange.from_json(data["change"])
         user = ModelUser.from_json(data["restorer"])
         return ModelEventChangeRestore(change, None, user)
+
+
+class ModelEventReviewerAdded(ModelEvent):
+
+    def __init__(self, change, patch, user):
+        ModelEvent.__init__(self, change, patch, user)
+
+    @staticmethod
+    def from_json(data):
+        change = ModelChange.from_json(data["change"])
+        user = ModelUser.from_json(data["reviewer"])
+        return ModelEventReviewerAdded(change, None, user)
+
+
+class ModelEventTopicChanged(ModelEvent):
+
+    def __init__(self, change, patch, user):
+        ModelEvent.__init__(self, change, patch, user)
+
+    @staticmethod
+    def from_json(data):
+        change = ModelChange.from_json(data["change"])
+        user = ModelUser.from_json(data["changer"])
+        return ModelEventTopicChanged(change, None, user)
+
+
+class ModelEventRefUpdated(ModelEvent):
+
+    def __init__(self, change, patch, user):
+        ModelEvent.__init__(self, change, patch, user)
+
+    @staticmethod
+    def from_json(data):
+        user = ModelUser.from_json(data.get("submitter", None))
+        return ModelEventRefUpdated(None, None, user)
