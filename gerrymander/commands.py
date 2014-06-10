@@ -769,7 +769,7 @@ class CommandComments(CommandCaching):
             comments = []
             comments.extend(patch.comments)
 
-            prefix = "Patch Set %d" % patch.number
+            prefix = "Patch Set %d:" % patch.number
             abandoned = 0
             for comment in change.comments:
                 if comment.message.startswith(prefix):
