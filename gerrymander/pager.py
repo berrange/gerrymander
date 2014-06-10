@@ -45,6 +45,8 @@ def stop_pager():
     if pagerproc is None:
         return
 
+    sys.stdout.flush()
+    sys.stderr.flush()
     os.close(1)
     pagerproc.stdin.close()
     pagerproc.wait()
