@@ -362,6 +362,9 @@ class CommandWatch(CommandProject):
 
     @staticmethod
     def format_event(event, bots, projects, usecolor):
+        if event.user is None or event.change is None:
+            return
+
         if event.is_user_in_list(bots):
             return
         if len(projects) > 0 and event.change.project not in projects:

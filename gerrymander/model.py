@@ -491,5 +491,8 @@ class ModelEventRefUpdated(ModelEvent):
 
     @staticmethod
     def from_json(data):
-        user = ModelUser.from_json(data.get("submitter", None))
+        submitter = data.get("submitter", None)
+        user = None
+        if submitter is not None:
+            user = ModelUser.from_json(submitter)
         return ModelEventRefUpdated(None, None, user)
