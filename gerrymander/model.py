@@ -57,8 +57,7 @@ class ModelFile(ModelBase):
 class ModelApproval(ModelBase):
     ACTION_VERIFIED = "Verified"
     ACTION_REVIEWED = "Code-Review"
-    ACTION_APPROVED = "APRV"
-    ACTION_SUBMITTED = "SUBM"
+    ACTION_WORKFLOW = "Workflow"
 
     def __init__(self, action, value, description, grantedOn=None, user=None):
         self.action = action

@@ -499,25 +499,37 @@ class ReportBaseChange(ReportTable):
             LOG.error("No patch")
             return ""
         vals = {}
-        neg=False
-        plus=False
+        votes = {
+            "c": { "-2": 0, "-1": 0, "0": 0, "1": 0, "2": 0 },
+            "v": { "-2": 0, "-1": 0, "0": 0, "1": 0, "2": 0 },
+            "w": { "-1": 0, "0": 0, "1": 0 },
+        }
+
         for approval in patch.approvals:
             got_type = approval.action[0:1].lower()
             if got_type not in vals:
                 vals[got_type] = []
             vals[got_type].append(str(approval.value))
-            if approval.action == ModelApproval.ACTION_REVIEWED and approval.value > 1:
-                plus=True
-            if approval.value < 0:
-                neg=True
+            votes[got_type][str(approval.value)] = votes[got_type][str(approval.value)] + 1
         keys = list(vals.keys())
         keys.sort(reverse=True)
         data = " ".join(map(lambda val: "%s=%s" % (val,
                                                    ",".join(vals[val])), keys))
-        if neg and rep.usecolor:
-            return format_color(data, fg="red")
-        elif plus and rep.usecolor:
-            return format_color(data, fg="green")
+        if rep.usecolor:
+            if votes["w"]["1"] > 0: # Stuff pending merge
+                return format_color(data, fg="blue", styles=["bold"])
+            elif votes["w"]["-1"] > 0: # Work-in-progress
+                return format_color(data, fg="magenta", styles=[])
+            elif votes["c"]["-2"] > 0: # Hard-nack from core
+                return format_color(data, fg="red", styles=["bold"])
+            elif votes["c"]["-1"] > 0 or votes["v"]["-1"] > 0: # Nack from any or bots
+                return format_color(data, fg="red", styles=[])
+            elif votes["c"]["2"] > 0: # Approval from core
+                return format_color(data, fg="green", styles=["bold"])
+            elif votes["c"]["1"] > 0: # Approval from any
+                return format_color(data, fg="green", styles=[])
+            else:
+                return data
         else:
             return data
 
