@@ -34,13 +34,18 @@ class ClientLive(object):
         self.keyfile = keyfile
 
     def _run_async(self, argv):
+
+        def _preexec_fn():
+            os.setpgrp()
+
         stdout = subprocess.PIPE
         stderr = subprocess.PIPE
         LOG.debug("Running cmd %s" % " ".join(argv))
         sp = subprocess.Popen(argv,
                               stdout=stdout,
                               stderr=stderr,
-                              stdin=None)
+                              stdin=None,
+                              preexec_fn=_preexec_fn)
         return sp
 
     def _build_argv(self, cmdargv):
