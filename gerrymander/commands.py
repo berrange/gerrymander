@@ -351,7 +351,7 @@ class CommandWatch(CommandProject):
     def format_approvals(approvals):
         bits = []
         for approval in approvals:
-            if approval.action == ModelApproval.ACTION_APPROVED and approval.value > 0:
+            if approval.action == ModelApproval.ACTION_WORKFLOW and approval.value > 0:
                 bits.append("+A")
             elif approval.action == ModelApproval.ACTION_REVIEWED:
                 if approval.value > 0:
