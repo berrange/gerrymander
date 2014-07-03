@@ -1,6 +1,19 @@
        Gerrymander News
        ================
 
+Release 1.2 - "As effective as a cat-flap in an elephant house" - 2014-07-03
+----------------------------------------------------------------------------
+
+ * Don't drop 'Restored' comments in 'comments' command
+ * Change 'assertEquals' to 'assertEqual'
+ * Print list of options for 'changes' command in help message
+ * Send all output via a pager (eg less or whatever $PAGER says)
+   Can disable via setting GERRYMANDER_PAGER=cat env var.
+ * Fix ordering of comments when > 10 patch sets are present
+ * Handle remaining event types
+ * Stop subprocesses getting signals intended for main process
+ * Improve colourization of review votes
+
 Release 1.1 - "Compulsory serving of asparagus at breakfast" - 2014-05-15
 -------------------------------------------------------------------------
 
