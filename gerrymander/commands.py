@@ -169,6 +169,7 @@ class Command(object):
         super(Command, self).__init__()
         self.name = name
         self.help = help
+        self.pager = True
 
     def add_option(self, parser, config, *args, **kwargs):
         if args[0][0:1] == "-":
@@ -207,9 +208,15 @@ class Command(object):
         raise NotImplementedError("Subclass should override run method")
 
     def execute(self, config, options):
-        client = self.get_client(config, options)
-        self.run(config, client, options)
+        if self.pager:
+            start_pager()
+        try:
+            client = self.get_client(config, options)
 
+            self.run(config, client, options)
+        finally:
+            if self.pager:
+                stop_pager()
 
 
 class CommandCaching(Command):
@@ -311,6 +318,8 @@ class CommandWatch(CommandProject):
 
     def __init__(self, name="watch", help="Watch incoming changes"):
         super(CommandWatch, self).__init__(name, help)
+
+        self.pager = False
 
     def add_options(self, parser, config):
         super(CommandWatch, self).add_options(parser, config)
@@ -863,13 +872,6 @@ class CommandTool(object):
         return CommandConfig(options.config)
 
     def execute(self, argv):
-        start_pager()
-        try:
-            self._execute(argv)
-        finally:
-            stop_pager()
-
-    def _execute(self, argv):
         miniparser = argparse.ArgumentParser(add_help=False)
         miniparser.add_argument("-c", "--config", default=os.path.expanduser("~/.gerrymander"),
                                 help=("Override config file (default %s)" %
