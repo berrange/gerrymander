@@ -71,6 +71,7 @@ class ReportOutputColumn(object):
 class ReportOutput(object):
 
     DISPLAY_MODE_TEXT = "text"
+    DISPLAY_MODE_CSV = "csv"
     DISPLAY_MODE_XML = "xml"
     DISPLAY_MODE_JSON = "json"
 
@@ -81,6 +82,8 @@ class ReportOutput(object):
     def display(self, mode, stream=sys.stdout):
         if mode == ReportOutput.DISPLAY_MODE_TEXT:
             stream.write(self.to_text())
+        elif mode == ReportOutput.DISPLAY_MODE_CSV:
+            stream.write(self.to_csv())
         elif mode == ReportOutput.DISPLAY_MODE_XML:
             impl = xml.dom.minidom.getDOMImplementation()
             doc = impl.createDocument(None, "report", None)
@@ -95,6 +98,9 @@ class ReportOutput(object):
 
     def to_text(self):
         raise NotImplementedError("Subclass should implement the 'to_text' method")
+
+    def to_csv(self):
+        raise NotImplementedError("Subclass should implement the 'to_csv' method")
 
     def to_xml(self, root):
         raise NotImplementedError("Subclass should implement the 'to_xml' method")
@@ -320,6 +326,33 @@ class ReportOutputTable(ReportOutput):
         if self.title is not None:
             prolog = format_title(self.title) + "\n"
         return prolog + str(table) + "\n"
+
+    def to_csv(self):
+        self.sort_rows()
+
+        labels = []
+        for col in self.columns:
+            if col.visible:
+                labels.append(col.label)
+
+        lines = []
+
+        if self.title is not None:
+            lines.append(self.title)
+
+        lines.append(",".join(labels))
+
+        rows = self.rows
+        if self.limit is not None:
+            rows = rows[0:self.limit]
+        for row in rows:
+            data = []
+            for col in self.columns:
+                if col.visible:
+                    data.append(col.get_value(self, row))
+            lines.append(",".join(data))
+
+        return "\n".join(lines)
 
 
 class Report(object):

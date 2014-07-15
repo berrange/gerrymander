@@ -441,7 +441,7 @@ class CommandReport(Command):
 
         self.add_option(parser, config,
                         "-m", "--mode", default=ReportOutput.DISPLAY_MODE_TEXT,
-                        help="Display output in 'text', 'json', 'xml'")
+                        help="Display output in 'text', 'json', 'xml', 'csv'")
         self.add_option(parser, config,
                         "--color", default=False, action="store_true",
                         help="Use terminal color highlighting")
