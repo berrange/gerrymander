@@ -93,6 +93,11 @@ class ModelApproval(ModelBase):
             return True
         return False
 
+    def get_age(self, now=None):
+        if now is None:
+            now = time.time()
+        return now - self.grantedOn
+
     @staticmethod
     def from_json(data):
         user = None

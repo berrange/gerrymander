@@ -19,6 +19,7 @@ from gerrymander.operations import OperationQuery
 from gerrymander.operations import OperationWatch
 from gerrymander.reports import ReportOutput
 from gerrymander.reports import ReportPatchReviewStats
+from gerrymander.reports import ReportPatchReviewRate
 from gerrymander.reports import ReportOpenReviewStats
 from gerrymander.reports import ReportChanges
 from gerrymander.reports import ReportToDoListMine
@@ -547,6 +548,35 @@ class CommandPatchReviewStats(CommandProject, CommandCaching, CommandReportTable
         return super(CommandPatchReviewStats, self).run(config, client, options)
 
 
+class CommandPatchReviewRate(CommandProject, CommandCaching, CommandReportTable):
+
+    def __init__(self, name="patchreviewrate", help="Daily review rate averaged per week"):
+        super(CommandPatchReviewRate, self).__init__(name, help)
+        self.teams = {}
+        self.set_long_cache(True)
+
+    def get_report(self, config, client, options):
+        if options.all_groups:
+            groups = config.get_organization_groups()
+        else:
+            groups = options.group
+
+        teams = {}
+        for team in config.get_organization_teams():
+            teams[team] = []
+            for group in groups:
+                users = config.get_group_team_members(group, team)
+                teams[team].extend(users)
+
+        return ReportPatchReviewRate(client,
+                                     self.get_projects(config, options, True),
+                                     teams,
+                                     usecolor=options.color)
+
+    def run(self, config, client, options):
+        return super(CommandPatchReviewRate, self).run(config, client, options)
+
+
 class CommandOpenReviewStats(CommandProject, CommandCaching, CommandReportTable):
 
     def __init__(self, name="openreviewstats", help="Statistics on open patch reviews"):
@@ -852,6 +882,7 @@ class CommandTool(object):
         self.add_command(subparser, config, CommandToDoMine)
         self.add_command(subparser, config, CommandToDoOthers)
         self.add_command(subparser, config, CommandPatchReviewStats)
+        self.add_command(subparser, config, CommandPatchReviewRate)
         self.add_command(subparser, config, CommandOpenReviewStats)
         self.add_command(subparser, config, CommandChanges)
         self.add_command(subparser, config, CommandComments)

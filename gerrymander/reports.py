@@ -525,6 +525,128 @@ class ReportPatchReviewStats(ReportTable):
         return compound
 
 
+class ReportPatchReviewRate(ReportTable):
+
+    def user_mapfunc(rep, col, row):
+        return row[0]
+
+    def team_mapfunc(rep, col, row):
+        return row[1]
+
+    def week_mapfunc(rep, col, row):
+        if col not in row[2]:
+            return 0.0
+
+        return (row[2][col] / 7.0)
+
+    def total_mapfunc(rep, col, row):
+        if col not in row[2]:
+            return 0.0
+
+        return (row[2][col] / (24.0 * 7.0))
+
+    COLUMNS = [
+        ReportOutputColumn("user", "User", user_mapfunc, align=ReportOutputColumn.ALIGN_LEFT),
+        ReportOutputColumn("team", "Team", team_mapfunc, align=ReportOutputColumn.ALIGN_LEFT),
+
+        ReportOutputColumn("total", "Total", total_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+
+        ReportOutputColumn("week1", "Week 1", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week2", "Week 2", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week3", "Week 3", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week4", "Week 4", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+
+        ReportOutputColumn("week5", "Week 5", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week6", "Week 6", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week7", "Week 7", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week8", "Week 8", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+
+        ReportOutputColumn("week9", "Week 9", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week10", "Week 10", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week11", "Week 11", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week12", "Week 12", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+
+        ReportOutputColumn("week13", "Week 13", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week14", "Week 14", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week15", "Week 15", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week16", "Week 16", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+
+        ReportOutputColumn("week17", "Week 17", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week18", "Week 18", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week19", "Week 19", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week20", "Week 20", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+
+        ReportOutputColumn("week21", "Week 21", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week22", "Week 22", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week23", "Week 23", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week24", "Week 24", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+    ]
+
+    def __init__(self, client, projects, teams={}, usecolor=False):
+        super(ReportPatchReviewRate, self).__init__(client,
+                                                    ReportPatchReviewRate.COLUMNS,
+                                                    sort="total", reverse=True)
+        self.projects = projects
+        self.teams = teams
+        self.usecolor = usecolor
+
+    def generate(self):
+        # We could query all projects at once, but if we do them
+        # individually it means we get better hit rate against the
+        # cache if the report is re-run for many different project
+        # combinations
+        reviewers = {}
+        now = time.time()
+        for project in self.projects:
+            query = OperationQuery(self.client,
+                                   {
+                                       "project": [project],
+                                   },
+                                   patches=OperationQuery.PATCHES_ALL,
+                                   approvals=True)
+
+
+            def querycb(change):
+                for patch in change.patches:
+                    for approval in patch.approvals:
+                        if approval.action == ModelApproval.ACTION_VERIFIED:
+                            continue
+
+                        user = approval.user
+                        if user is None or user.username is None:
+                            continue
+                        username = user.username
+
+                        if username not in reviewers:
+                            reviewers[username] = { "total": 0}
+
+                        agesecs = approval.get_age(now)
+                        ageweeks = int(agesecs / (60 * 60 * 24 * 7)) + 1
+                        key = "week%d" % ageweeks
+
+                        if key not in reviewers[username]:
+                            reviewers[username][key] = 0
+
+                        reviewers[username][key] = reviewers[username][key] + 1
+
+                        if ageweeks <= 24:
+                            reviewers[username]["total"] = reviewers[username]["total"] + 1
+
+            query.run(querycb)
+
+        table = self.new_table("Daily review rates per week")
+
+        for reviewer in reviewers.keys():
+            userteam = ""
+            for team in self.teams.keys():
+                if reviewer in self.teams[team]:
+                    userteam = team
+
+            table.add_row([reviewer, userteam, reviewers[reviewer]])
+
+        return table
+
+
 class ReportBaseChange(ReportTable):
     def approvals_mapfunc(rep, col, row):
         patch = row.get_current_patch()
