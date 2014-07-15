@@ -551,36 +551,71 @@ class ReportPatchReviewRate(ReportTable):
 
         ReportOutputColumn("total", "Total", total_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
 
-        ReportOutputColumn("week1", "Week 1", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
-        ReportOutputColumn("week2", "Week 2", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
-        ReportOutputColumn("week3", "Week 3", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
-        ReportOutputColumn("week4", "Week 4", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week1", "1 week", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week2", "2 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week3", "3 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week4", "4 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
 
-        ReportOutputColumn("week5", "Week 5", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
-        ReportOutputColumn("week6", "Week 6", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
-        ReportOutputColumn("week7", "Week 7", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
-        ReportOutputColumn("week8", "Week 8", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week5", "5 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week6", "6 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week7", "7 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week8", "8 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
 
-        ReportOutputColumn("week9", "Week 9", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
-        ReportOutputColumn("week10", "Week 10", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
-        ReportOutputColumn("week11", "Week 11", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
-        ReportOutputColumn("week12", "Week 12", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week9", "9 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week10", "10 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week11", "11 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week12", "12 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
 
-        ReportOutputColumn("week13", "Week 13", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
-        ReportOutputColumn("week14", "Week 14", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
-        ReportOutputColumn("week15", "Week 15", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
-        ReportOutputColumn("week16", "Week 16", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week13", "13 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week14", "14 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week15", "15 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week16", "16 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
 
-        ReportOutputColumn("week17", "Week 17", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
-        ReportOutputColumn("week18", "Week 18", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
-        ReportOutputColumn("week19", "Week 19", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
-        ReportOutputColumn("week20", "Week 20", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week17", "17 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week18", "18 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week19", "19 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week20", "20 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
 
-        ReportOutputColumn("week21", "Week 21", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
-        ReportOutputColumn("week22", "Week 22", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
-        ReportOutputColumn("week23", "Week 23", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
-        ReportOutputColumn("week24", "Week 24", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
-    ]
+        ReportOutputColumn("week21", "21 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week22", "22 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week23", "23 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week24", "24 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+
+        ReportOutputColumn("week25", "25 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week26", "26 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week27", "27 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week28", "28 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+
+        ReportOutputColumn("week29", "29 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week30", "30 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week31", "31 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week32", "32 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+
+        ReportOutputColumn("week33", "33 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week34", "34 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week35", "35 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week36", "36 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+
+        ReportOutputColumn("week37", "37 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week38", "38 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week39", "39 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week40", "40 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+
+        ReportOutputColumn("week41", "41 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week42", "42 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week43", "43 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week44", "44 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+
+        ReportOutputColumn("week45", "45 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week46", "46 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week47", "47 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week48", "48 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+
+        ReportOutputColumn("week49", "49 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week50", "50 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week51", "51 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+        ReportOutputColumn("week52", "52 weeks", week_mapfunc, align=ReportOutputColumn.ALIGN_LEFT, format="%0.2f"),
+     ]
 
     def __init__(self, client, projects, teams={}, usecolor=False):
         super(ReportPatchReviewRate, self).__init__(client,
@@ -629,7 +664,7 @@ class ReportPatchReviewRate(ReportTable):
 
                         reviewers[username][key] = reviewers[username][key] + 1
 
-                        if ageweeks <= 24:
+                        if ageweeks <= 52:
                             reviewers[username]["total"] = reviewers[username]["total"] + 1
 
             query.run(querycb)
