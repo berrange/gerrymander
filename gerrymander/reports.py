@@ -543,7 +543,7 @@ class ReportPatchReviewRate(ReportTable):
         if col not in row[2]:
             return 0.0
 
-        return (row[2][col] / (24.0 * 7.0))
+        return (row[2][col] / (52.0 * 7.0))
 
     COLUMNS = [
         ReportOutputColumn("user", "User", user_mapfunc, align=ReportOutputColumn.ALIGN_LEFT),
