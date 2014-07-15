@@ -323,6 +323,11 @@ class ModelChange(ModelBase):
             return False
         return patch.has_other_reviewers(excludeusers)
 
+    def has_owner(self, includeusers):
+        '''Determine if the change is owned by anyone
+        in 'incldueusers' list.'''
+        return self.is_user_in_list(includeusers, self.owner)
+
     @staticmethod
     def from_json(data):
         patches = []

@@ -672,7 +672,8 @@ class ReportToDoListMine(ReportToDoList):
         self.username = username
 
     def filter(self, change):
-        if not change.has_current_reviewers([self.username]):
+        if (not change.has_current_reviewers([self.username]) and
+            not change.has_owner([self.username])):
             return True
         return False
 
