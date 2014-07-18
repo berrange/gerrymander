@@ -52,7 +52,7 @@ with the '-h' argument
   positional arguments:
     {watch,todo-noones,todo-anyones,todo-mine,todo-others,patchreviewstats,changes}
       watch               Watch incoming changes
-      todo-noones         List of changes on one has looked at yet
+      todo-noones         List of changes no one has looked at yet
       todo-anyones        List of changes anyone has looked at
       todo-mine           List of changes I've looked at before
       todo-others         List of changes I've not looked at before
