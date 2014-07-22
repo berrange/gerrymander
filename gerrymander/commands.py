@@ -660,6 +660,12 @@ class CommandToDoMine(CommandProject, CommandCaching, CommandReportTable):
     def __init__(self, name="todo-mine", help="List of changes I've looked at before"):
         super(CommandToDoMine, self).__init__(name, help)
 
+    def add_options(self, parser, config):
+        super(CommandToDoMine, self).add_options(parser, config)
+
+        self.add_option(parser, config,
+                        "--branch", action="append", default=[],
+                        help="Filter based on branch")
 
     def get_report(self, config, client, options):
         username = config.get_server_username()
@@ -669,6 +675,7 @@ class CommandToDoMine(CommandProject, CommandCaching, CommandReportTable):
         return ReportToDoListMine(client,
                                   username=username,
                                   projects=self.get_projects(config, options),
+                                  branches=options.branch,
                                   usecolor=options.color)
 
 
@@ -676,6 +683,13 @@ class CommandToDoOthers(CommandProject, CommandCaching, CommandReportTable):
 
     def __init__(self, name="todo-others", help="List of changes I've not looked at before"):
         super(CommandToDoOthers, self).__init__(name, help)
+
+    def add_options(self, parser, config):
+        super(CommandToDoOthers, self).add_options(parser, config)
+
+        self.add_option(parser, config,
+                        "--branch", action="append", default=[],
+                        help="Filter based on branch")
 
     def get_report(self, config, client, options):
         username = config.get_server_username()
@@ -685,6 +699,7 @@ class CommandToDoOthers(CommandProject, CommandCaching, CommandReportTable):
         return ReportToDoListOthers(client,
                                     username=username,
                                     projects=self.get_projects(config, options),
+                                    branches=options.branch,
                                     usecolor=options.color)
 
 
@@ -692,6 +707,13 @@ class CommandToDoAnyones(CommandProject, CommandCaching, CommandReportTable):
 
     def __init__(self, name="todo-anyones", help="List of changes anyone has looked at"):
         super(CommandToDoAnyones, self).__init__(name, help)
+
+    def add_options(self, parser, config):
+        super(CommandToDoAnyones, self).add_options(parser, config)
+
+        self.add_option(parser, config,
+                        "--branch", action="append", default=[],
+                        help="Filter based on branch")
 
     def get_report(self, config, client, options):
         username = config.get_server_username()
@@ -702,6 +724,7 @@ class CommandToDoAnyones(CommandProject, CommandCaching, CommandReportTable):
                                      username=username,
                                      bots=config.get_organization_bots(),
                                      projects=self.get_projects(config, options),
+                                     branches=options.branch,
                                      usecolor=options.color)
 
 
@@ -710,10 +733,18 @@ class CommandToDoNoones(CommandProject, CommandCaching, CommandReportTable):
     def __init__(self, name="todo-noones", help="List of changes no one has looked at yet"):
         super(CommandToDoNoones, self).__init__(name, help)
 
+    def add_options(self, parser, config):
+        super(CommandToDoNoones, self).add_options(parser, config)
+
+        self.add_option(parser, config,
+                        "--branch", action="append", default=[],
+                        help="Filter based on branch")
+
     def get_report(self, config, client, options):
         return ReportToDoListNoones(client,
                                     bots=config.get_organization_bots(),
                                     projects=self.get_projects(config, options),
+                                    branches=options.branch,
                                     usecolor=options.color)
 
 
