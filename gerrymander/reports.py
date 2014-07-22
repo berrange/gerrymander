@@ -14,6 +14,7 @@
 # under the License.
 
 
+import collections
 import prettytable
 import logging
 import time
@@ -683,40 +684,99 @@ class ReportPatchReviewRate(ReportTable):
 
 
 class ReportBaseChange(ReportTable):
+
+    @staticmethod
+    def get_approval_votes(patch):
+        levels = ["-2", "-1", "1", "2"]
+
+        votes = {
+            "c": { "total": collections.defaultdict(int),
+                   "list": [],
+                   "summary": "",
+                   "details": "",
+            },
+            "v": { "total": collections.defaultdict(int),
+                   "list": [],
+                   "summary": "",
+                   "details": "",
+            },
+            "w": { "total": collections.defaultdict(int),
+                   "list": [],
+                   "summary": "",
+                   "details": "",
+            },
+        }
+
+        for approval in patch.approvals:
+            got_type = approval.action[0:1].lower()
+            vote = str(approval.value)
+            votes[got_type]["total"][vote] = votes[got_type]["total"][vote] + 1
+            votes[got_type]["list"].append(vote)
+
+        for key in votes.keys():
+            votes[key]["details"] = ",".join(votes[key]["list"])
+
+            vals = []
+            for level in levels:
+                if level in votes[key]["total"]:
+                    votes[key]["summary"] = level
+                    break
+
+        return votes
+
     def approvals_mapfunc(rep, col, row):
         patch = row.get_current_patch()
         if patch is None:
             LOG.error("No patch")
             return ""
-        vals = {}
-        votes = {
-            "c": { "-2": 0, "-1": 0, "0": 0, "1": 0, "2": 0 },
-            "v": { "-2": 0, "-1": 0, "0": 0, "1": 0, "2": 0 },
-            "w": { "-1": 0, "0": 0, "1": 0 },
-        }
 
-        for approval in patch.approvals:
-            got_type = approval.action[0:1].lower()
-            if got_type not in vals:
-                vals[got_type] = []
-            vals[got_type].append(str(approval.value))
-            votes[got_type][str(approval.value)] = votes[got_type][str(approval.value)] + 1
-        keys = list(vals.keys())
+        votes = ReportBaseChange.get_approval_votes(patch)
+        keys = list(votes.keys())
         keys.sort(reverse=True)
-        data = " ".join(map(lambda val: "%s=%s" % (val,
-                                                   ",".join(vals[val])), keys))
+
+        data = " ".join(map(lambda val: "%s=%s" % (val, votes[val]["details"]), keys))
+
         if rep.usecolor:
-            if votes["w"]["1"] > 0: # Stuff pending merge
+            if votes["w"]["total"]["1"] > 0: # Stuff pending merge
                 return format_color(data, fg="blue", styles=["bold"])
-            elif votes["w"]["-1"] > 0: # Work-in-progress
+            elif votes["w"]["total"]["-1"] > 0: # Work-in-progress
                 return format_color(data, fg="magenta", styles=[])
-            elif votes["c"]["-2"] > 0: # Hard-nack from core
+            elif votes["c"]["total"]["-2"] > 0: # Hard-nack from core
                 return format_color(data, fg="red", styles=["bold"])
-            elif votes["c"]["-1"] > 0 or votes["v"]["-1"] > 0: # Nack from any or bots
+            elif votes["c"]["total"]["-1"] > 0 or votes["v"]["total"]["-1"] > 0: # Nack from any or bots
                 return format_color(data, fg="red", styles=[])
-            elif votes["c"]["2"] > 0: # Approval from core
+            elif votes["c"]["total"]["2"] > 0: # Approval from core
                 return format_color(data, fg="green", styles=["bold"])
-            elif votes["c"]["1"] > 0: # Approval from any
+            elif votes["c"]["total"]["1"] > 0: # Approval from any
+                return format_color(data, fg="green", styles=[])
+            else:
+                return data
+        else:
+            return data
+
+    def votes_mapfunc(rep, col, row):
+        patch = row.get_current_patch()
+        if patch is None:
+            LOG.error("No patch")
+            return ""
+
+        if col == "tests":
+            coltype = "v"
+        elif col == "reviews":
+            coltype = "c"
+        else:
+            coltype = "w"
+
+        votes = ReportBaseChange.get_approval_votes(patch)
+        data = "%2s" % votes[coltype]["summary"]
+        if rep.usecolor:
+            if votes[coltype]["total"]["-2"] > 0: # Hard-nack from core
+                return format_color(data, fg="red", styles=["bold"])
+            elif votes[coltype]["total"]["-1"] > 0: # Soft-nack from any
+                return format_color(data, fg="red", styles=[])
+            elif votes[coltype]["total"]["2"] > 0: # Approval from core
+                return format_color(data, fg="green", styles=["bold"])
+            elif votes[coltype]["total"]["1"] > 0: # Approval from any
                 return format_color(data, fg="green", styles=[])
             else:
                 return data
@@ -750,7 +810,10 @@ class ReportBaseChange(ReportTable):
         ReportOutputColumn("subject", "Subject", lambda rep, col, row: row.subject, truncate=30),
         ReportOutputColumn("createdOn", "Created", date_mapfunc, date_sortfunc),
         ReportOutputColumn("lastUpdated", "Updated", date_mapfunc, date_sortfunc),
-        ReportOutputColumn("approvals", "Approvals", approvals_mapfunc),
+        ReportOutputColumn("approvals", "Approvals", approvals_mapfunc, visible=False),
+        ReportOutputColumn("tests", "Tests", votes_mapfunc),
+        ReportOutputColumn("reviews", "Reviews", votes_mapfunc),
+        ReportOutputColumn("workflow", "Workflow", votes_mapfunc),
     ]
 
     def __init__(self, client, usecolor=False):
