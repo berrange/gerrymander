@@ -687,7 +687,10 @@ class ReportBaseChange(ReportTable):
 
     @staticmethod
     def get_approval_votes(patch):
-        levels = ["-2", "-1", "1", "2"]
+        # Yes, the numbers are slightly odd order
+        # A +2 or -2 more important than any -1 or +1
+        # so we prefer them as the summary value
+        levels = ["-2", "2", "-1", "1"]
 
         votes = {
             "c": { "total": collections.defaultdict(int),
@@ -772,10 +775,10 @@ class ReportBaseChange(ReportTable):
         if rep.usecolor:
             if votes[coltype]["total"]["-2"] > 0: # Hard-nack from core
                 return format_color(data, fg="red", styles=["bold"])
-            elif votes[coltype]["total"]["-1"] > 0: # Soft-nack from any
-                return format_color(data, fg="red", styles=[])
             elif votes[coltype]["total"]["2"] > 0: # Approval from core
                 return format_color(data, fg="green", styles=["bold"])
+            elif votes[coltype]["total"]["-1"] > 0: # Soft-nack from any
+                return format_color(data, fg="red", styles=[])
             elif votes[coltype]["total"]["1"] > 0: # Approval from any
                 return format_color(data, fg="green", styles=[])
             else:
