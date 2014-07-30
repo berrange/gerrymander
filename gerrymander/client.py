@@ -160,12 +160,17 @@ class ClientCaching(ClientLive):
         file = self.cachedir + "/" + m.hexdigest() + ".json"
         if not os.path.exists(file) or self.refresh:
             sp = self._run_async(argv)
-            with open(file, "wb") as f:
-                while True:
-                    line = sp.stdout.readline()
-                    if not line:
-                        break
-                    f.write(line)
+            try:
+                with open(file, "wb") as f:
+                    while True:
+                        line = sp.stdout.readline()
+                        if not line:
+                            break
+                        f.write(line)
+            except:
+                os.unlink(file)
+                raise
+
             sp.wait()
             if sp.returncode != 0:
                 os.unlink(file)
