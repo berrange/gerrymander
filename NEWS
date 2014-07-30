@@ -1,6 +1,20 @@
        Gerrymander News
        ================
 
+Release 1.3 - "Any history of sanity in the family?" - 2014-07-30
+----------------------------------------------------------------------
+
+ * Exclude own changes in the todo lists
+ * Add CSV as an output format for some reports
+ * Add patchreviewrate report for seeing historica approvals per day
+ * Replace 'Approvals' column with 'Test', 'Review' and 'Workflow' columns
+   in change reports
+ * Allow todo lists to be filtered per branch
+ * Reorder sorting of votes to prioritize +2/-2s over +1/-1s
+ * Avoid exception from unexpected approval vote types
+ * Avoid creating empty cache file when Ctrl-C'ing ssh client
+ * Run ssh in batch mode to avoid hang when host key is unknown
+
 Release 1.2 - "As effective as a cat-flap in an elephant house" - 2014-07-03
 ----------------------------------------------------------------------------
 
