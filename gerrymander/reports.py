@@ -712,6 +712,8 @@ class ReportBaseChange(ReportTable):
 
         for approval in patch.approvals:
             got_type = approval.action[0:1].lower()
+            if got_type not in votes:
+                continue
             vote = str(approval.value)
             votes[got_type]["total"][vote] = votes[got_type]["total"][vote] + 1
             votes[got_type]["list"].append(vote)
