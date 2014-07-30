@@ -50,6 +50,7 @@ class ClientLive(object):
 
     def _build_argv(self, cmdargv):
         argv = ['ssh']
+        argv.extend(["-T", "-o", "BatchMode=yes", "-e", "none"])
         if self.port:
             argv.extend(["-p", str(self.port)])
         if self.keyfile and os.path.isfile(self.keyfile):
