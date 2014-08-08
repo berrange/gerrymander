@@ -21,6 +21,7 @@ BuildRequires: python-nose
 %if %{with_python3}
 BuildRequires: python3
 BuildRequires: python3-nose
+BuildRequires: python3-devel
 %endif
 
 %if %{with_python2}
