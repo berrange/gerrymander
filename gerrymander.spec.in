@@ -14,6 +14,7 @@ Url: http://github.com/berrange/gerrymander
 License: ASL 2.0
 Group: Development/Libraries
 Requires: python3-gerrymander
+BuildArch: noarch
 %if %{with_python2}
 BuildRequires: python
 BuildRequires: python-nose
