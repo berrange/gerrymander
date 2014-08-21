@@ -199,6 +199,15 @@ class ModelPatch(ModelBase):
                 hasReviewers = True
         return hasReviewers
 
+    def has_current_approval(self, action, value):
+        '''Determine if the change has an approval vote
+        of the requested type and value'''
+        for approval in self.approvals:
+            if (approval.action == action and
+                approval.value == value):
+                return True
+        return False
+
     @staticmethod
     def from_json(data):
         files = []
@@ -332,6 +341,14 @@ class ModelChange(ModelBase):
         '''Determine if the change is owned by anyone
         in 'incldueusers' list.'''
         return self.is_user_in_list(includeusers, self.owner)
+
+    def has_current_approval(self, action, value):
+        '''Determine if the change has an approval vote
+        of the requested type and value'''
+        patch = self.get_current_patch()
+        if patch is None:
+            return False
+        return patch.has_current_approval(action, value)
 
     @staticmethod
     def from_json(data):

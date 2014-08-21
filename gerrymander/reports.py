@@ -1004,6 +1004,36 @@ class ReportToDoListNoones(ReportToDoList):
         return False
 
 
+class ReportToDoListApprovable(ReportToDoList):
+
+    def __init__(self, client, username, strict, projects=[], branches=[], usecolor=False):
+        '''
+        Report to provide a list of changes that no one
+        has ever reviewed
+        '''
+        super(ReportToDoListApprovable, self).__init__(client,
+                                                       projects,
+                                                       branches=branches,
+                                                       usecolor=usecolor)
+        self.username = username
+        self.strict = strict
+
+    def filter(self, change):
+        if (change.has_current_approval(ModelApproval.ACTION_REVIEWED, 2) and
+            not change.has_owner([self.username]) and
+            not change.has_current_approval(ModelApproval.ACTION_WORKFLOW, -1) and
+            not change.has_current_approval(ModelApproval.ACTION_WORKFLOW, 1) and
+            not change.has_current_approval(ModelApproval.ACTION_REVIEWED, -2) and
+            not change.has_current_reviewers([self.username])):
+
+            if (self.strict and
+                change.has_current_approval(ModelApproval.ACTION_REVIEWED, -1)):
+                return False
+
+            return True
+        return False
+
+
 class ReportOpenReviewStats(ReportBaseChange):
 
     def __init__(self, client, projects, branch="master", days=7, usecolor=False):
