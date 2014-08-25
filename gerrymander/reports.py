@@ -56,7 +56,7 @@ class ReportOutputColumn(object):
             val = ""
 
         if type(val) != str:
-            val = str(val)
+            val = val.encode('utf-8')
 
         if self.truncate and len(val) > self.truncate:
             val = val[0:self.truncate] + "..."
