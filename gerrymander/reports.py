@@ -812,6 +812,7 @@ class ReportBaseChange(ReportTable):
         ReportOutputColumn("owner", "Owner", user_mapfunc),
         ReportOutputColumn("project", "Project", lambda rep, col, row: row.project, visible=False),
         ReportOutputColumn("branch", "Branch", lambda rep, col, row: row.branch, visible=False),
+        ReportOutputColumn("topic", "Topic", lambda rep, col, row: row.topic, visible=False),
         ReportOutputColumn("subject", "Subject", lambda rep, col, row: row.subject, truncate=30),
         ReportOutputColumn("createdOn", "Created", date_mapfunc, date_sortfunc),
         ReportOutputColumn("lastUpdated", "Updated", date_mapfunc, date_sortfunc),
@@ -830,7 +831,7 @@ class ReportBaseChange(ReportTable):
 class ReportChanges(ReportBaseChange):
 
     def __init__(self, client, projects=[], owners=[],
-                 status=[], messages=[], branches=[], reviewers=[],
+                 status=[], messages=[], branches=[], topics=[], reviewers=[],
                  approvals=[], files=[], rawquery=None, usecolor=False):
         super(ReportChanges, self).__init__(client, usecolor)
         self.projects = projects
@@ -838,6 +839,7 @@ class ReportChanges(ReportBaseChange):
         self.status = status
         self.messages = messages
         self.branches = branches
+        self.topics = topics
         self.reviewers = reviewers
         self.approvals = approvals
         self.files = files
@@ -854,6 +856,7 @@ class ReportChanges(ReportBaseChange):
                                    "owner": self.owners,
                                    "message": self.messages,
                                    "branch": self.branches,
+                                   "topic": self.topics,
                                    "status": self.status,
                                    "reviewer": self.reviewers,
                                },
@@ -884,11 +887,12 @@ class ReportChanges(ReportBaseChange):
 
 class ReportToDoList(ReportBaseChange):
 
-    def __init__(self, client, projects=[], branches=[], reviewers=[], usecolor=False):
+    def __init__(self, client, projects=[], branches=[], topics=[], reviewers=[], usecolor=False):
         super(ReportToDoList, self).__init__(client, usecolor)
 
         self.projects = projects
         self.branches = branches
+        self.topics = topics
         self.reviewers = reviewers
 
     def filter(self, change):
@@ -900,6 +904,7 @@ class ReportToDoList(ReportBaseChange):
                                    "project": self.projects,
                                    "status": [ OperationQuery.STATUS_OPEN ],
                                    "branch": self.branches,
+                                   "topic": self.topics,
                                    "reviewer": self.reviewers,
                                },
                                patches=OperationQuery.PATCHES_ALL,
@@ -919,7 +924,7 @@ class ReportToDoList(ReportBaseChange):
 
 class ReportToDoListMine(ReportToDoList):
 
-    def __init__(self, client, username, projects=[], branches=[], usecolor=False):
+    def __init__(self, client, username, projects=[], branches=[], topics=[], usecolor=False):
         '''
         Report to provide a list of changes 'username' has
         reviewed an older version of the patch, and needs
@@ -929,6 +934,7 @@ class ReportToDoListMine(ReportToDoList):
                                                  projects,
                                                  reviewers=[ username ],
                                                  branches=branches,
+                                                 topics=topics,
                                                  usecolor=usecolor)
         self.username = username
 
@@ -940,7 +946,7 @@ class ReportToDoListMine(ReportToDoList):
 
 
 class ReportToDoListOthers(ReportToDoList):
-    def __init__(self, client, username, bots=[], projects=[], branches=[], usecolor=False):
+    def __init__(self, client, username, bots=[], projects=[], branches=[], topics=[], usecolor=False):
         '''
         Report to provide a list of changes where 'username' has
         never reviewed, but at least one other non-bot user has
@@ -950,6 +956,7 @@ class ReportToDoListOthers(ReportToDoList):
                                                    projects,
                                                    reviewers=[ "!", username ],
                                                    branches=branches,
+                                                   topics=topics,
                                                    usecolor=usecolor)
         self.bots = bots
 
@@ -965,7 +972,7 @@ class ReportToDoListOthers(ReportToDoList):
 
 class ReportToDoListAnyones(ReportToDoList):
 
-    def __init__(self, client, username, bots=[], projects=[], branches=[], usecolor=False):
+    def __init__(self, client, username, bots=[], projects=[], branches=[], topics=[], usecolor=False):
         '''
         Report to provide a list of changes where at least
         one other non-bot user has provided review
@@ -973,6 +980,7 @@ class ReportToDoListAnyones(ReportToDoList):
         super(ReportToDoListAnyones, self).__init__(client,
                                                     projects,
                                                     branches=branches,
+                                                    topics=topics,
                                                     usecolor=usecolor)
         self.bots = bots
         self.username = username
@@ -987,7 +995,7 @@ class ReportToDoListAnyones(ReportToDoList):
 
 class ReportToDoListNoones(ReportToDoList):
 
-    def __init__(self, client, bots=[], projects=[], branches=[], usecolor=False):
+    def __init__(self, client, bots=[], projects=[], branches=[], topics=[], usecolor=False):
         '''
         Report to provide a list of changes that no one
         has ever reviewed
@@ -995,6 +1003,7 @@ class ReportToDoListNoones(ReportToDoList):
         super(ReportToDoListNoones, self).__init__(client,
                                                    projects,
                                                    branches=branches,
+                                                   topics=topics,
                                                    usecolor=usecolor)
         self.bots = bots
 
@@ -1006,7 +1015,7 @@ class ReportToDoListNoones(ReportToDoList):
 
 class ReportToDoListApprovable(ReportToDoList):
 
-    def __init__(self, client, username, strict, projects=[], branches=[], usecolor=False):
+    def __init__(self, client, username, strict, projects=[], branches=[], topics=[], usecolor=False):
         '''
         Report to provide a list of changes that no one
         has ever reviewed
@@ -1014,6 +1023,7 @@ class ReportToDoListApprovable(ReportToDoList):
         super(ReportToDoListApprovable, self).__init__(client,
                                                        projects,
                                                        branches=branches,
+                                                       topics=topics,
                                                        usecolor=usecolor)
         self.username = username
         self.strict = strict
@@ -1036,10 +1046,11 @@ class ReportToDoListApprovable(ReportToDoList):
 
 class ReportOpenReviewStats(ReportBaseChange):
 
-    def __init__(self, client, projects, branch="master", days=7, usecolor=False):
+    def __init__(self, client, projects, branch="master", topic="", days=7, usecolor=False):
         super(ReportOpenReviewStats, self).__init__(client, usecolor)
         self.projects = projects
         self.branch = branch
+        self.topic = topic
         self.days = days
 
     @staticmethod
@@ -1095,6 +1106,7 @@ class ReportOpenReviewStats(ReportBaseChange):
                                        "project": [project],
                                        "status": [OperationQuery.STATUS_OPEN],
                                        "branch": [self.branch],
+                                       "topic": [self.topic],
                                    },
                                    patches=OperationQuery.PATCHES_ALL,
                                    approvals=True)
