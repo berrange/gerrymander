@@ -7,7 +7,7 @@
 #hostname=review.openstack.org
 #port=29418
 #username=berrange
-#keyfile=/home/berrange/.ssh/id_rsa.pub
+#keyfile=/home/berrange/.ssh/id_rsa
 
 #[cache]
 # Directory where the results of gerry query commands
