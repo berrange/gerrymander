@@ -594,11 +594,15 @@ class CommandOpenReviewStats(CommandProject, CommandCaching, CommandReportTable)
         self.add_option(parser, config,
                         "--days", default=7,
                         help="Show count waiting more than N days")
+        self.add_option(parser, config,
+                        "--topic", default="",
+                        help="Set topic name to query")
 
     def get_report(self, config, client, options):
         return ReportOpenReviewStats(client,
                                      self.get_projects(config, options, True),
                                      options.branch,
+                                     options.topic,
                                      int(options.days),
                                      usecolor=options.color)
 
@@ -627,6 +631,9 @@ class CommandChanges(CommandProject, CommandCaching, CommandReportTable):
                         "--branch", action="append", default=[],
                         help="Filter based on branch")
         self.add_option(parser, config,
+                        "--topic", action="append", default=[],
+                        help="Filter based on topic")
+        self.add_option(parser, config,
                         "--message", action="append", default=[],
                         help="Filter based on message")
         self.add_option(parser, config,
@@ -649,6 +656,7 @@ class CommandChanges(CommandProject, CommandCaching, CommandReportTable):
                              status=options.status,
                              reviewers=options.reviewer,
                              branches=options.branch,
+                             topics=options.topic,
                              messages=options.message,
                              owners=options.owner,
                              approvals=options.approval,
@@ -668,6 +676,9 @@ class CommandToDoMine(CommandProject, CommandCaching, CommandReportTable):
                         "--branch", action="append", default=[],
                         help="Filter based on branch")
         self.add_option(parser, config,
+                        "--topic", action="append", default=[],
+                        help="Filter based on topic")
+        self.add_option(parser, config,
                         "file", default=[], nargs="*",
                         help="File name matches")
 
@@ -681,6 +692,7 @@ class CommandToDoMine(CommandProject, CommandCaching, CommandReportTable):
                                   projects=self.get_projects(config, options),
                                   branches=options.branch,
                                   files=options.file,
+                                  topics=options.topic,
                                   usecolor=options.color)
 
 
@@ -696,6 +708,9 @@ class CommandToDoOthers(CommandProject, CommandCaching, CommandReportTable):
                         "--branch", action="append", default=[],
                         help="Filter based on branch")
         self.add_option(parser, config,
+                        "--topic", action="append", default=[],
+                        help="Filter based on branch")
+        self.add_option(parser, config,
                         "file", default=[], nargs="*",
                         help="File name matches")
 
@@ -709,6 +724,7 @@ class CommandToDoOthers(CommandProject, CommandCaching, CommandReportTable):
                                     projects=self.get_projects(config, options),
                                     branches=options.branch,
                                     files=options.file,
+                                    topics=options.topic,
                                     usecolor=options.color)
 
 
@@ -724,6 +740,9 @@ class CommandToDoAnyones(CommandProject, CommandCaching, CommandReportTable):
                         "--branch", action="append", default=[],
                         help="Filter based on branch")
         self.add_option(parser, config,
+                        "--topic", action="append", default=[],
+                        help="Filter based on topic")
+        self.add_option(parser, config,
                         "file", default=[], nargs="*",
                         help="File name matches")
 
@@ -738,6 +757,7 @@ class CommandToDoAnyones(CommandProject, CommandCaching, CommandReportTable):
                                      projects=self.get_projects(config, options),
                                      branches=options.branch,
                                      files=options.file,
+                                     topics=options.topic,
                                      usecolor=options.color)
 
 
@@ -753,6 +773,9 @@ class CommandToDoNoones(CommandProject, CommandCaching, CommandReportTable):
                         "--branch", action="append", default=[],
                         help="Filter based on branch")
         self.add_option(parser, config,
+                        "--topic", action="append", default=[],
+                        help="Filter based on topic")
+        self.add_option(parser, config,
                         "file", default=[], nargs="*",
                         help="File name matches")
 
@@ -762,6 +785,7 @@ class CommandToDoNoones(CommandProject, CommandCaching, CommandReportTable):
                                     projects=self.get_projects(config, options),
                                     branches=options.branch,
                                     files=options.file,
+                                    topics=options.topic,
                                     usecolor=options.color)
 
 
@@ -776,6 +800,9 @@ class CommandToDoApprovable(CommandProject, CommandCaching, CommandReportTable):
         self.add_option(parser, config,
                         "--branch", action="append", default=[],
                         help="Filter based on branch")
+        self.add_option(parser, config,
+                        "--topic", action="append", default=[],
+                        help="Filter based on topic")
         self.add_option(parser, config,
                         "--strict", action="store_true", default=False,
                         help="Exclude changes with any negative code reviews")
@@ -794,6 +821,7 @@ class CommandToDoApprovable(CommandProject, CommandCaching, CommandReportTable):
                                         projects=self.get_projects(config, options),
                                         branches=options.branch,
                                         files=options.file,
+                                        topics=options.topic,
                                         usecolor=options.color)
 
 
