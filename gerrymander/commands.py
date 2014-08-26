@@ -594,11 +594,15 @@ class CommandOpenReviewStats(CommandProject, CommandCaching, CommandReportTable)
         self.add_option(parser, config,
                         "--days", default=7,
                         help="Show count waiting more than N days")
+        self.add_option(parser, config,
+                        "--topic", default="",
+                        help="Set topic name to query")
 
     def get_report(self, config, client, options):
         return ReportOpenReviewStats(client,
                                      self.get_projects(config, options, True),
                                      options.branch,
+                                     options.topic,
                                      int(options.days),
                                      usecolor=options.color)
 
@@ -627,6 +631,9 @@ class CommandChanges(CommandProject, CommandCaching, CommandReportTable):
                         "--branch", action="append", default=[],
                         help="Filter based on branch")
         self.add_option(parser, config,
+                        "--topic", action="append", default=[],
+                        help="Filter based on topic")
+        self.add_option(parser, config,
                         "--message", action="append", default=[],
                         help="Filter based on message")
         self.add_option(parser, config,
@@ -649,6 +656,7 @@ class CommandChanges(CommandProject, CommandCaching, CommandReportTable):
                              status=options.status,
                              reviewers=options.reviewer,
                              branches=options.branch,
+                             topics=options.topic,
                              messages=options.message,
                              owners=options.owner,
                              approvals=options.approval,
@@ -667,6 +675,9 @@ class CommandToDoMine(CommandProject, CommandCaching, CommandReportTable):
         self.add_option(parser, config,
                         "--branch", action="append", default=[],
                         help="Filter based on branch")
+        self.add_option(parser, config,
+                        "--topic", action="append", default=[],
+                        help="Filter based on topic")
 
     def get_report(self, config, client, options):
         username = config.get_server_username()
@@ -677,6 +688,7 @@ class CommandToDoMine(CommandProject, CommandCaching, CommandReportTable):
                                   username=username,
                                   projects=self.get_projects(config, options),
                                   branches=options.branch,
+                                  topics=options.topic,
                                   usecolor=options.color)
 
 
@@ -692,6 +704,10 @@ class CommandToDoOthers(CommandProject, CommandCaching, CommandReportTable):
                         "--branch", action="append", default=[],
                         help="Filter based on branch")
 
+        self.add_option(parser, config,
+                        "--topic", action="append", default=[],
+                        help="Filter based on branch")
+
     def get_report(self, config, client, options):
         username = config.get_server_username()
         if username is None:
@@ -701,6 +717,7 @@ class CommandToDoOthers(CommandProject, CommandCaching, CommandReportTable):
                                     username=username,
                                     projects=self.get_projects(config, options),
                                     branches=options.branch,
+                                    topics=options.topic,
                                     usecolor=options.color)
 
 
@@ -716,6 +733,10 @@ class CommandToDoAnyones(CommandProject, CommandCaching, CommandReportTable):
                         "--branch", action="append", default=[],
                         help="Filter based on branch")
 
+        self.add_option(parser, config,
+                        "--topic", action="append", default=[],
+                        help="Filter based on topic")
+
     def get_report(self, config, client, options):
         username = config.get_server_username()
         if username is None:
@@ -726,6 +747,7 @@ class CommandToDoAnyones(CommandProject, CommandCaching, CommandReportTable):
                                      bots=config.get_organization_bots(),
                                      projects=self.get_projects(config, options),
                                      branches=options.branch,
+                                     topics=options.topic,
                                      usecolor=options.color)
 
 
@@ -741,11 +763,16 @@ class CommandToDoNoones(CommandProject, CommandCaching, CommandReportTable):
                         "--branch", action="append", default=[],
                         help="Filter based on branch")
 
+        self.add_option(parser, config,
+                        "--topic", action="append", default=[],
+                        help="Filter based on topic")
+
     def get_report(self, config, client, options):
         return ReportToDoListNoones(client,
                                     bots=config.get_organization_bots(),
                                     projects=self.get_projects(config, options),
                                     branches=options.branch,
+                                    topics=options.topic,
                                     usecolor=options.color)
 
 
@@ -761,6 +788,9 @@ class CommandToDoApprovable(CommandProject, CommandCaching, CommandReportTable):
                         "--branch", action="append", default=[],
                         help="Filter based on branch")
         self.add_option(parser, config,
+                        "--topic", action="append", default=[],
+                        help="Filter based on topic")
+        self.add_option(parser, config,
                         "--strict", action="store_true", default=False,
                         help="Exclude changes with any negative code reviews")
 
@@ -774,6 +804,7 @@ class CommandToDoApprovable(CommandProject, CommandCaching, CommandReportTable):
                                         strict=options.strict,
                                         projects=self.get_projects(config, options),
                                         branches=options.branch,
+                                        topics=options.topic,
                                         usecolor=options.color)
 
 
