@@ -884,17 +884,23 @@ class ReportChanges(ReportBaseChange):
 
 class ReportToDoList(ReportBaseChange):
 
-    def __init__(self, client, projects=[], branches=[], reviewers=[], usecolor=False):
+    def __init__(self, client, projects=[], branches=[],
+                 files=[], reviewers=[], usecolor=False):
         super(ReportToDoList, self).__init__(client, usecolor)
 
         self.projects = projects
         self.branches = branches
         self.reviewers = reviewers
+        self.files = files
 
     def filter(self, change):
         return True
 
     def generate(self):
+        needFiles = False
+        if len(self.files) > 0:
+            needFiles = True
+
         query = OperationQuery(self.client,
                                {
                                    "project": self.projects,
@@ -903,11 +909,22 @@ class ReportToDoList(ReportBaseChange):
                                    "reviewer": self.reviewers,
                                },
                                patches=OperationQuery.PATCHES_ALL,
-                               approvals=True)
+                               approvals=True,
+                               files=needFiles)
+
+        def match_files(change):
+            if len(self.files) == 0:
+                return True
+            for filere in self.files:
+                for patch in change.patches:
+                    for file in patch.files:
+                        if re.search(filere, file.path):
+                            return True
+            return False
 
         table = self.new_table("Changes To Do List")
         def querycb(change):
-            if self.filter(change):
+            if self.filter(change) and match_files(change):
                 table.add_row(change)
 
         query.run(querycb)
@@ -919,7 +936,8 @@ class ReportToDoList(ReportBaseChange):
 
 class ReportToDoListMine(ReportToDoList):
 
-    def __init__(self, client, username, projects=[], branches=[], usecolor=False):
+    def __init__(self, client, username, projects=[],
+                 branches=[], files=[], usecolor=False):
         '''
         Report to provide a list of changes 'username' has
         reviewed an older version of the patch, and needs
@@ -929,6 +947,7 @@ class ReportToDoListMine(ReportToDoList):
                                                  projects,
                                                  reviewers=[ username ],
                                                  branches=branches,
+                                                 files=files,
                                                  usecolor=usecolor)
         self.username = username
 
@@ -940,7 +959,8 @@ class ReportToDoListMine(ReportToDoList):
 
 
 class ReportToDoListOthers(ReportToDoList):
-    def __init__(self, client, username, bots=[], projects=[], branches=[], usecolor=False):
+    def __init__(self, client, username, bots=[], projects=[],
+                 branches=[], files=[], usecolor=False):
         '''
         Report to provide a list of changes where 'username' has
         never reviewed, but at least one other non-bot user has
@@ -950,6 +970,7 @@ class ReportToDoListOthers(ReportToDoList):
                                                    projects,
                                                    reviewers=[ "!", username ],
                                                    branches=branches,
+                                                   files=files,
                                                    usecolor=usecolor)
         self.bots = bots
 
@@ -965,7 +986,8 @@ class ReportToDoListOthers(ReportToDoList):
 
 class ReportToDoListAnyones(ReportToDoList):
 
-    def __init__(self, client, username, bots=[], projects=[], branches=[], usecolor=False):
+    def __init__(self, client, username, bots=[], projects=[],
+                 branches=[], files=[], usecolor=False):
         '''
         Report to provide a list of changes where at least
         one other non-bot user has provided review
@@ -973,6 +995,7 @@ class ReportToDoListAnyones(ReportToDoList):
         super(ReportToDoListAnyones, self).__init__(client,
                                                     projects,
                                                     branches=branches,
+                                                    files=files,
                                                     usecolor=usecolor)
         self.bots = bots
         self.username = username
@@ -987,7 +1010,8 @@ class ReportToDoListAnyones(ReportToDoList):
 
 class ReportToDoListNoones(ReportToDoList):
 
-    def __init__(self, client, bots=[], projects=[], branches=[], usecolor=False):
+    def __init__(self, client, bots=[], projects=[],
+                 branches=[], files=[], usecolor=False):
         '''
         Report to provide a list of changes that no one
         has ever reviewed
@@ -995,6 +1019,7 @@ class ReportToDoListNoones(ReportToDoList):
         super(ReportToDoListNoones, self).__init__(client,
                                                    projects,
                                                    branches=branches,
+                                                   files=files,
                                                    usecolor=usecolor)
         self.bots = bots
 
@@ -1006,7 +1031,8 @@ class ReportToDoListNoones(ReportToDoList):
 
 class ReportToDoListApprovable(ReportToDoList):
 
-    def __init__(self, client, username, strict, projects=[], branches=[], usecolor=False):
+    def __init__(self, client, username, strict, projects=[],
+                 branches=[], files=[], usecolor=False):
         '''
         Report to provide a list of changes that no one
         has ever reviewed
@@ -1014,6 +1040,7 @@ class ReportToDoListApprovable(ReportToDoList):
         super(ReportToDoListApprovable, self).__init__(client,
                                                        projects,
                                                        branches=branches,
+                                                       files=files,
                                                        usecolor=usecolor)
         self.username = username
         self.strict = strict

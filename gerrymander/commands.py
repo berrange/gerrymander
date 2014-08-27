@@ -667,6 +667,9 @@ class CommandToDoMine(CommandProject, CommandCaching, CommandReportTable):
         self.add_option(parser, config,
                         "--branch", action="append", default=[],
                         help="Filter based on branch")
+        self.add_option(parser, config,
+                        "file", default=[], nargs="*",
+                        help="File name matches")
 
     def get_report(self, config, client, options):
         username = config.get_server_username()
@@ -677,6 +680,7 @@ class CommandToDoMine(CommandProject, CommandCaching, CommandReportTable):
                                   username=username,
                                   projects=self.get_projects(config, options),
                                   branches=options.branch,
+                                  files=options.file,
                                   usecolor=options.color)
 
 
@@ -691,6 +695,9 @@ class CommandToDoOthers(CommandProject, CommandCaching, CommandReportTable):
         self.add_option(parser, config,
                         "--branch", action="append", default=[],
                         help="Filter based on branch")
+        self.add_option(parser, config,
+                        "file", default=[], nargs="*",
+                        help="File name matches")
 
     def get_report(self, config, client, options):
         username = config.get_server_username()
@@ -701,6 +708,7 @@ class CommandToDoOthers(CommandProject, CommandCaching, CommandReportTable):
                                     username=username,
                                     projects=self.get_projects(config, options),
                                     branches=options.branch,
+                                    files=options.file,
                                     usecolor=options.color)
 
 
@@ -715,6 +723,9 @@ class CommandToDoAnyones(CommandProject, CommandCaching, CommandReportTable):
         self.add_option(parser, config,
                         "--branch", action="append", default=[],
                         help="Filter based on branch")
+        self.add_option(parser, config,
+                        "file", default=[], nargs="*",
+                        help="File name matches")
 
     def get_report(self, config, client, options):
         username = config.get_server_username()
@@ -726,6 +737,7 @@ class CommandToDoAnyones(CommandProject, CommandCaching, CommandReportTable):
                                      bots=config.get_organization_bots(),
                                      projects=self.get_projects(config, options),
                                      branches=options.branch,
+                                     files=options.file,
                                      usecolor=options.color)
 
 
@@ -740,12 +752,16 @@ class CommandToDoNoones(CommandProject, CommandCaching, CommandReportTable):
         self.add_option(parser, config,
                         "--branch", action="append", default=[],
                         help="Filter based on branch")
+        self.add_option(parser, config,
+                        "file", default=[], nargs="*",
+                        help="File name matches")
 
     def get_report(self, config, client, options):
         return ReportToDoListNoones(client,
                                     bots=config.get_organization_bots(),
                                     projects=self.get_projects(config, options),
                                     branches=options.branch,
+                                    files=options.file,
                                     usecolor=options.color)
 
 
@@ -763,6 +779,9 @@ class CommandToDoApprovable(CommandProject, CommandCaching, CommandReportTable):
         self.add_option(parser, config,
                         "--strict", action="store_true", default=False,
                         help="Exclude changes with any negative code reviews")
+        self.add_option(parser, config,
+                        "file", default=[], nargs="*",
+                        help="File name matches")
 
     def get_report(self, config, client, options):
         username = config.get_server_username()
@@ -774,6 +793,7 @@ class CommandToDoApprovable(CommandProject, CommandCaching, CommandReportTable):
                                         strict=options.strict,
                                         projects=self.get_projects(config, options),
                                         branches=options.branch,
+                                        files=options.file,
                                         usecolor=options.color)
 
 
