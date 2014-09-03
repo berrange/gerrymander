@@ -1,8 +1,19 @@
        Gerrymander News
        ================
 
+Release 1.4 - "On no account mention the word Macbeth" - 2014-09-03
+-------------------------------------------------------------------
+
+ * Add command for reporting potentially approvable patches
+ * Add command for reporting potentially expirable patches
+ * Allow todo list commands to be filtered on filename
+ * Remove hardcoded #!/usr/bin/python3 lines
+ * Fix traceback on casting unicode strings
+ * Allow filtering reports based on topic
+ * Fix typo in keyfile setting in example config
+
 Release 1.3 - "Any history of sanity in the family?" - 2014-07-30
-----------------------------------------------------------------------
+-----------------------------------------------------------------
 
  * Exclude own changes in the todo lists
  * Add CSV as an output format for some reports
