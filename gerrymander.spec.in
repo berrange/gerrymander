@@ -74,6 +74,8 @@ CFLAGS="$RPM_OPT_FLAGS" %{__python3} setup.py build
 rm -rf %{buildroot}%{python_sitelib}/*egg-info
 %endif
 %if %{with_python3}
+# Remove python2 version, to force install of the python3 one
+rm -f %{buildroot}%{_bindir}/gerrymander
 %{__python3} setup.py install --skip-build --root=%{buildroot}
 rm -rf %{buildroot}%{python3_sitelib}/*egg-info
 %endif
