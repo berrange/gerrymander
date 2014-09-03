@@ -1069,6 +1069,28 @@ class ReportToDoListApprovable(ReportToDoList):
         return False
 
 
+class ReportToDoListExpirable(ReportToDoList):
+
+    def __init__(self, client, age=28, projects=[],
+                 branches=[], files=[], topics=[], usecolor=False):
+        '''
+        Report to provide a list of changes that are
+        stale and can potentially be expired
+        '''
+        super(ReportToDoListExpirable, self).__init__(client,
+                                                      projects,
+                                                      branches=branches,
+                                                      files=files,
+                                                      topics=topics,
+                                                      usecolor=usecolor)
+        self.age = age
+
+    def filter(self, change):
+        if change.get_current_reviewer_nack_age() > (self.age * 24 * 60 * 60):
+            return True
+        return False
+
+
 class ReportOpenReviewStats(ReportBaseChange):
 
     def __init__(self, client, projects, branch="master", topic="", days=7, usecolor=False):

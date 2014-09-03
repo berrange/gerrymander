@@ -166,6 +166,15 @@ class ModelPatch(ModelBase):
                 return True
         return False
 
+    def get_reviewer_nack_age(self, now):
+        age = 0
+        for approval in self.approvals:
+            if approval.is_reviewer_nack():
+                thisage = approval.get_age(now)
+                if (age == 0) or (thisage < age):
+                    age = thisage
+        return age
+
     def get_age(self, now):
         if len(self.approvals) == 0:
             return now - self.createdOn
@@ -290,6 +299,12 @@ class ModelChange(ModelBase):
         if patch is None:
             return 0
         return patch.get_age(time.time())
+
+    def get_current_reviewer_nack_age(self):
+        patch = self.get_current_patch()
+        if patch is None:
+            return 0
+        return patch.get_reviewer_nack_age(time.time())
 
     @staticmethod
     def is_user_in_list(users, user):

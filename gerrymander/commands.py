@@ -27,6 +27,7 @@ from gerrymander.reports import ReportToDoListOthers
 from gerrymander.reports import ReportToDoListAnyones
 from gerrymander.reports import ReportToDoListNoones
 from gerrymander.reports import ReportToDoListApprovable
+from gerrymander.reports import ReportToDoListExpirable
 from gerrymander.format import format_color
 from gerrymander.model import ModelEventCommentAdd
 from gerrymander.model import ModelEventPatchCreate
@@ -825,6 +826,37 @@ class CommandToDoApprovable(CommandProject, CommandCaching, CommandReportTable):
                                         usecolor=options.color)
 
 
+class CommandToDoExpirable(CommandProject, CommandCaching, CommandReportTable):
+
+    def __init__(self, name="todo-expirable", help="List of stale changes that can be expired"):
+        super(CommandToDoExpirable, self).__init__(name, help)
+
+    def add_options(self, parser, config):
+        super(CommandToDoExpirable, self).add_options(parser, config)
+
+        self.add_option(parser, config,
+                        "--branch", action="append", default=[],
+                        help="Filter based on branch")
+        self.add_option(parser, config,
+                        "--topic", action="append", default=[],
+                        help="Filter based on topic")
+        self.add_option(parser, config,
+                        "--age", default="28",
+                        help="Set age cutoff in days")
+        self.add_option(parser, config,
+                        "file", default=[], nargs="*",
+                        help="File name matches")
+
+    def get_report(self, config, client, options):
+        return ReportToDoListExpirable(client,
+                                       age=int(options.age),
+                                       projects=self.get_projects(config, options),
+                                       branches=options.branch,
+                                       files=options.file,
+                                       topics=options.topic,
+                                       usecolor=options.color)
+
+
 class CommandComments(CommandCaching):
 
     def __init__(self, name="comments", help="Display comments on a change"):
@@ -990,6 +1022,7 @@ class CommandTool(object):
         self.add_command(subparser, config, CommandToDoMine)
         self.add_command(subparser, config, CommandToDoOthers)
         self.add_command(subparser, config, CommandToDoApprovable)
+        self.add_command(subparser, config, CommandToDoExpirable)
         self.add_command(subparser, config, CommandPatchReviewStats)
         self.add_command(subparser, config, CommandPatchReviewRate)
         self.add_command(subparser, config, CommandOpenReviewStats)
