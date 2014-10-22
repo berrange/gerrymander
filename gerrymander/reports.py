@@ -1026,6 +1026,7 @@ class ReportToDoListNoones(ReportToDoList):
         super(ReportToDoListNoones, self).__init__(client,
                                                    projects,
                                                    branches=branches,
+                                                   files=files,
                                                    topics=topics,
                                                    usecolor=usecolor)
         self.bots = bots
