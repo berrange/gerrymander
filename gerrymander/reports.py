@@ -855,94 +855,27 @@ class ReportBaseChange(ReportTable):
         self.usecolor = usecolor
 
 
-class ReportChanges(ReportBaseChange):
+class ReportChangeList(ReportBaseChange):
 
-    def __init__(self, client, projects=[], owners=[],
-                 status=[], messages=[], branches=[], topics=[], reviewers=[],
-                 approvals=[], files=[], rawquery=None, usecolor=False):
-        super(ReportChanges, self).__init__(client, usecolor)
-        self.projects = projects
-        self.owners = owners
-        self.status = status
-        self.messages = messages
-        self.branches = branches
-        self.topics = topics
-        self.reviewers = reviewers
-        self.approvals = approvals
-        self.files = files
+    def __init__(self, client, usecolor, title,
+                 query_terms, patches, files=None, rawquery=None):
+        super(ReportChangeList, self).__init__(client, usecolor)
+        self.title = title
+        self.query_terms = query_terms
+        self.patches = patches
         self.rawquery = rawquery
-
-    def generate(self):
-        needFiles = False
-        if len(self.files) > 0:
-            needFiles = True
-
-        query = OperationQuery(self.client,
-                               {
-                                   "project": self.projects,
-                                   "owner": self.owners,
-                                   "message": self.messages,
-                                   "branch": self.branches,
-                                   "topic": self.topics,
-                                   "status": self.status,
-                                   "reviewer": self.reviewers,
-                               },
-                               rawquery=self.rawquery,
-                               patches=OperationQuery.PATCHES_CURRENT,
-                               approvals=True,
-                               files=needFiles)
-
-        def match_files(change):
-            if len(self.files) == 0:
-                return True
-            for filere in self.files:
-                for patch in change.patches:
-                    for file in patch.files:
-                        if re.search(filere, file.path):
-                            return True
-            return False
-
-        table = self.new_table("Changes")
-        def querycb(change):
-            if match_files(change):
-                table.add_row(change)
-
-        query.run(querycb)
-
-        return table
-
-
-class ReportToDoList(ReportBaseChange):
-
-    def __init__(self, client, projects=[], branches=[],
-                 files=[], topics=[], reviewers=[], usecolor=False):
-        super(ReportToDoList, self).__init__(client, usecolor)
-
-        self.projects = projects
-        self.branches = branches
-        self.reviewers = reviewers
         self.files = files
-        self.topics = topics
 
     def filter(self, change):
         return True
 
     def generate(self):
-        needFiles = False
-        if len(self.files) > 0:
-            needFiles = True
-
         query = OperationQuery(self.client,
-                               {
-                                   "project": self.projects,
-                                   "status": [ OperationQuery.STATUS_OPEN ],
-                                   "branch": self.branches,
-                                   "topic": self.topics,
-                                   "reviewer": self.reviewers,
-                               },
-                               patches=OperationQuery.PATCHES_ALL,
+                               self.query_terms,
+                               rawquery=self.rawquery,
+                               patches=self.patches,
                                approvals=True,
-                               files=needFiles)
+                               files=(self.files is not None))
 
         def match_files(change):
             if len(self.files) == 0:
@@ -954,7 +887,7 @@ class ReportToDoList(ReportBaseChange):
                             return True
             return False
 
-        table = self.new_table("Changes To Do List")
+        table = self.new_table(self.title)
         def querycb(change):
             if self.filter(change) and match_files(change):
                 table.add_row(change)
@@ -964,6 +897,45 @@ class ReportToDoList(ReportBaseChange):
         return table
 
 
+class ReportChanges(ReportChangeList):
+
+    def __init__(self, client, projects=[], owners=[],
+                 status=[], messages=[], branches=[], topics=[], reviewers=[],
+                 approvals=[], files=[], rawquery=None, usecolor=False):
+        self.approvals = approvals
+
+        query_terms = {
+            "project": projects,
+            "owner": owners,
+            "message": messages,
+            "branch": branches,
+            "topic": topics,
+            "status": status,
+            "reviewer": reviewers,
+        }
+        super(ReportChanges, self).__init__(client, usecolor, "Changes",
+                                            query_terms,
+                                            OperationQuery.PATCHES_CURRENT,
+                                            files=files,
+                                            rawquery=rawquery)
+
+
+class ReportToDoList(ReportChangeList):
+
+    def __init__(self, client, projects=[], branches=[],
+                 files=[], topics=[], reviewers=[], usecolor=False):
+        query_terms = {
+            "project": projects,
+            "status": [ OperationQuery.STATUS_OPEN ],
+            "branch": branches,
+            "topic": topics,
+            "reviewer": reviewers,
+        }
+        super(ReportToDoList, self).__init__(client, usecolor,
+                                             "Changes To Do List",
+                                             query_terms,
+                                             OperationQuery.PATCHES_ALL,
+                                             files)
 
 
 class ReportToDoListMine(ReportToDoList):
