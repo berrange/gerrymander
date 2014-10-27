@@ -36,7 +36,7 @@ class OperationQuery(OperationBase):
     STATUS_CLOSED = "closed"
 
     def __init__(self, client, terms={}, rawquery=None, patches=PATCHES_NONE,
-                 approvals=False, files=False, comments=False):
+                 approvals=False, files=False, comments=False, deps=False):
         OperationBase.__init__(self, client)
         self.terms = terms
         self.rawquery = rawquery
@@ -44,6 +44,7 @@ class OperationQuery(OperationBase):
         self.approvals = approvals
         self.files = files
         self.comments = comments
+        self.deps = deps
 
         if self.patches == OperationQuery.PATCHES_NONE:
             if self.approvals:
@@ -64,6 +65,8 @@ class OperationQuery(OperationBase):
             args.append("--files")
         if self.comments:
             args.append("--comments")
+        if self.deps:
+            args.append("--dependencies")
 
         clauses = []
         if limit is not None:

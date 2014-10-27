@@ -247,7 +247,9 @@ class ModelPatch(ModelBase):
 
 class ModelChange(ModelBase):
 
-    def __init__(self, project, branch, topic, id, number, subject, owner, url, createdOn, lastUpdated, status, patches = [], comments = []):
+    def __init__(self, project, branch, topic, id, number, subject, owner, url,
+                 createdOn, lastUpdated, status,
+                 patches = [], comments = [], depends = None):
         self.project = project
         self.branch = branch
         self.topic = topic
@@ -267,6 +269,7 @@ class ModelChange(ModelBase):
         self.status = status
         self.patches = patches
         self.comments = comments
+        self.depends = depends
 
     def get_current_patch(self):
         if len(self.patches) == 0:
@@ -383,6 +386,12 @@ class ModelChange(ModelBase):
         for c in data.get("comments", []):
             comments.append(ModelComment.from_json(c))
 
+        depends = None
+        dependsChange = data.get("dependsOn")
+        if dependsChange is not None and len(dependsChange) > 0:
+            # We only track a single dependency
+            depends = dependsChange[0].get("id")
+
         return ModelChange(data.get("project", None),
                            data.get("branch", None),
                            data.get("topic", None),
@@ -395,7 +404,8 @@ class ModelChange(ModelBase):
                            data.get("lastUpdated", None),
                            data.get("status", None),
                            patches,
-                           comments)
+                           comments,
+                           depends)
 
 
 class ModelEvent(ModelBase):
