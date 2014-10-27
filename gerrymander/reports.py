@@ -875,7 +875,8 @@ class ReportChangeList(ReportBaseChange):
                                rawquery=self.rawquery,
                                patches=self.patches,
                                approvals=True,
-                               files=(self.files is not None))
+                               files=(self.files is not None),
+                               deps=self.deps)
 
         def match_files(change):
             if len(self.files) == 0:
@@ -888,11 +889,40 @@ class ReportChangeList(ReportBaseChange):
             return False
 
         table = self.new_table(self.title)
-        def querycb(change):
-            if self.filter(change) and match_files(change):
-                table.add_row(change)
 
-        query.run(querycb)
+        if not self.deps:
+            def querycb(change):
+                if self.filter(change) and match_files(change):
+                    table.add_row(change)
+            query.run(querycb)
+        else:
+            # Index all changes by change id
+            nodes = {}
+            def querycb(change):
+                if self.filter(change) and match_files(change):
+                    nodes[change.id] = TreeNode(change, [])
+            query.run(querycb)
+
+            # Create a hierarchy of changes by dependency
+            root = []
+            for node in nodes.values():
+                change = node.data
+                parent = nodes.get(change.depends)
+
+                # Check if we've seen this change's parent
+                if parent is None:
+                    # If not, add it to the root list
+                    root.append(node)
+                else:
+                    # Add it as a child
+                    parent.children.append(node)
+
+            # Add changes recursively to output table
+            def add_nodes(change_nodes, parent=None):
+                for change_node in change_nodes:
+                    row_node = table.add_row(change_node.data, parent)
+                    add_nodes(change_node.children, row_node)
+            add_nodes(root)
 
         return table
 
