@@ -32,6 +32,10 @@ from gerrymander.format import format_color
 
 LOG = logging.getLogger(__name__)
 
+
+TreeNode = collections.namedtuple('TreeNode', ['data', 'children'])
+
+
 class ReportOutputColumn(object):
 
     ALIGN_LEFT = "l"
@@ -227,22 +231,40 @@ class ReportOutputTable(ReportOutput):
     def add_column(self, col):
         self.columns.append(col)
 
-    def add_row(self, row):
-        self.rows.append(row)
+    def add_row(self, data, parent=None):
+        node = TreeNode(data, [])
 
-    def sort_rows(self):
+        if parent is None:
+            self.rows.append(node)
+        else:
+            parent.children.append(node)
+        return node
+
+    def iter_rowlist(self, init_rowlist, output_row, init_data, gen_child_data):
         sortcol = None
         for col in self.columns:
             if col.key == self.sortcol:
                 sortcol = col
 
-        if sortcol is not None:
-            self.rows.sort(key = lambda item: sortcol.get_sort_value(self, item),
-                           reverse=self.reverse)
+        total_written = [0]
+        def _iter_rowlist(rowlist, data):
+            if sortcol is not None:
+                rowlist.sort(key = lambda item: sortcol.get_sort_value(
+                                 self, item.data),
+                             reverse=self.reverse)
+
+            for row in rowlist:
+                if self.limit is not None and total_written[0] == self.limit:
+                    return
+                total_written[0] += 1
+
+                rowdata = output_row(row.data, data)
+
+                if len(row.children) > 0:
+                    _iter_rowlist(row.children, gen_child_data(rowdata))
+        _iter_rowlist(init_rowlist, init_data)
 
     def to_xml(self, doc, root):
-        self.sort_rows()
-
         table = doc.createElement("table")
         root.appendChild(table)
         if self.title is not None:
@@ -254,44 +276,53 @@ class ReportOutputTable(ReportOutput):
         table.appendChild(headers)
         table.appendChild(content)
 
-        for col in self.columns:
-            if col.visible:
-                xmlcol = doc.createElement(col.key)
-                xmlcol.appendChild(doc.createTextNode(col.label))
-                headers.appendChild(xmlcol)
+        visible_cols = list(filter(lambda col: col.visible, self.columns))
+        for col in visible_cols:
+            xmlcol = doc.createElement(col.key)
+            xmlcol.appendChild(doc.createTextNode(col.label))
+            headers.appendChild(xmlcol)
 
-        rows = self.rows
-        if self.limit is not None:
-            rows = rows[0:self.limit]
-        for row in rows:
+        def output_xml(row_data, parent):
             xmlrow = doc.createElement("row")
-            for col in self.columns:
-                if col.visible:
-                    xmlfield = doc.createElement(col.key)
-                    xmlfield.appendChild(doc.createTextNode(col.get_value(self, row)))
-                    xmlrow.appendChild(xmlfield)
-            content.appendChild(xmlrow)
+            for col in visible_cols:
+                xmlfield = doc.createElement(col.key)
+                xmlfield.appendChild(
+                    doc.createTextNode(col.get_value(self, row_data)))
+                xmlrow.appendChild(xmlfield)
+            parent.appendChild(xmlrow)
+            return xmlrow
+
+        def gen_children(parent):
+            children = doc.createElement("children")
+            parent.appendChild(children)
+            return children
+
+        self.iter_rowlist(self.rows, output_xml, content, gen_children)
 
         return doc
 
     def to_json(self, root):
-        self.sort_rows()
+        visible_cols = list(filter(lambda col: col.visible, self.columns))
 
         headers = {}
-        for col in self.columns:
-            if col.visible:
-                headers[col.key] = col.label
+        for col in visible_cols:
+            headers[col.key] = col.label
 
         content = []
-        rows = self.rows
-        if self.limit is not None:
-            rows = rows[0:self.limit]
-        for row in rows:
+
+        def output_json(row_data, parent):
             data = {}
-            for col in self.columns:
-                if col.visible:
-                    data[col.key] = col.get_value(self, row)
-            content.append(data)
+            for col in visible_cols:
+                data[col.key] = col.get_value(self, row_data)
+            parent.append(data)
+            return data
+
+        def gen_children(parent):
+            children = []
+            parent['children'] = children
+            return children
+
+        self.iter_rowlist(self.rows, output_json, content, gen_children)
 
         node = {
             "table": {
@@ -304,27 +335,28 @@ class ReportOutputTable(ReportOutput):
         root.append(node)
 
     def to_text(self):
-        self.sort_rows()
-
         labels = []
-        for col in self.columns:
-            if col.visible:
-                labels.append(col.label)
+        visible_cols = list(filter(lambda col: col.visible, self.columns))
+        for col in visible_cols:
+            labels.append(col.label)
         table = prettytable.PrettyTable(labels)
-        for col in self.columns:
+        for col in visible_cols:
             table.align[col.label] = col.align
 
         table.padding_width = 1
+        indent = 2
 
-        rows = self.rows
-        if self.limit is not None:
-            rows = rows[0:self.limit]
-        for row in rows:
-            data = []
-            for col in self.columns:
-                if col.visible:
-                    data.append(col.get_value(self, row))
-            table.add_row(data)
+        def output_text(row_data, depth):
+            fields = list(map(lambda col: col.get_value(self, row_data),
+                              visible_cols))
+            fields[0] = ' ' * indent * depth + fields[0]
+            table.add_row(fields)
+            return depth
+
+        def inc_depth(depth):
+            return depth + 1
+
+        self.iter_rowlist(self.rows, output_text, 0, inc_depth)
 
         prolog = ""
         if self.title is not None:
@@ -332,29 +364,25 @@ class ReportOutputTable(ReportOutput):
         return prolog + str(table) + "\n"
 
     def to_csv(self):
-        self.sort_rows()
-
-        labels = []
-        for col in self.columns:
-            if col.visible:
-                labels.append(col.label)
+        visible_cols = list(filter(lambda col: col.visible, self.columns))
 
         lines = []
 
         if self.title is not None:
             lines.append(self.title)
 
+        labels = []
+        for col in visible_cols:
+            labels.append(col.label)
         lines.append(",".join(labels))
 
-        rows = self.rows
-        if self.limit is not None:
-            rows = rows[0:self.limit]
-        for row in rows:
-            data = []
-            for col in self.columns:
-                if col.visible:
-                    data.append(col.get_value(self, row))
+        # CSV data is flat
+        def output_csv(row_data, dummy):
+            data = list(map(lambda col: col.get_value(self, row_data), visible_cols))
             lines.append(",".join(data))
+            return dummy
+
+        self.iter_rowlist(self.rows, output_csv, None, lambda x: None)
 
         return "\n".join(lines)
 
