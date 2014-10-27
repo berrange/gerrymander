@@ -858,13 +858,15 @@ class ReportBaseChange(ReportTable):
 class ReportChangeList(ReportBaseChange):
 
     def __init__(self, client, usecolor, title,
-                 query_terms, patches, files=None, rawquery=None):
+                 query_terms, patches, files=None, rawquery=None,
+                 deps=False):
         super(ReportChangeList, self).__init__(client, usecolor)
         self.title = title
         self.query_terms = query_terms
         self.patches = patches
         self.rawquery = rawquery
         self.files = files
+        self.deps = deps
 
     def filter(self, change):
         return True
@@ -931,7 +933,8 @@ class ReportChanges(ReportChangeList):
 
     def __init__(self, client, projects=[], owners=[],
                  status=[], messages=[], branches=[], topics=[], reviewers=[],
-                 approvals=[], files=[], rawquery=None, usecolor=False):
+                 approvals=[], files=[], rawquery=None, usecolor=False,
+                 deps=False):
         self.approvals = approvals
 
         query_terms = {
@@ -947,13 +950,13 @@ class ReportChanges(ReportChangeList):
                                             query_terms,
                                             OperationQuery.PATCHES_CURRENT,
                                             files=files,
-                                            rawquery=rawquery)
+                                            rawquery=rawquery, deps=deps)
 
 
 class ReportToDoList(ReportChangeList):
 
     def __init__(self, client, projects=[], branches=[],
-                 files=[], topics=[], reviewers=[], usecolor=False):
+                 files=[], topics=[], reviewers=[], usecolor=False, deps=False):
         query_terms = {
             "project": projects,
             "status": [ OperationQuery.STATUS_OPEN ],
@@ -965,13 +968,13 @@ class ReportToDoList(ReportChangeList):
                                              "Changes To Do List",
                                              query_terms,
                                              OperationQuery.PATCHES_ALL,
-                                             files)
+                                             files, deps=deps)
 
 
 class ReportToDoListMine(ReportToDoList):
 
     def __init__(self, client, username, projects=[],
-                 branches=[], files=[], topics=[], usecolor=False):
+                 branches=[], files=[], topics=[], usecolor=False, deps=False):
         '''
         Report to provide a list of changes 'username' has
         reviewed an older version of the patch, and needs
@@ -983,7 +986,8 @@ class ReportToDoListMine(ReportToDoList):
                                                  branches=branches,
                                                  files=files,
                                                  topics=topics,
-                                                 usecolor=usecolor)
+                                                 usecolor=usecolor,
+                                                 deps=deps)
         self.username = username
 
     def filter(self, change):
@@ -995,7 +999,7 @@ class ReportToDoListMine(ReportToDoList):
 
 class ReportToDoListOthers(ReportToDoList):
     def __init__(self, client, username, bots=[], projects=[],
-                 branches=[], files=[], topics=[], usecolor=False):
+                 branches=[], files=[], topics=[], usecolor=False, deps=False):
         '''
         Report to provide a list of changes where 'username' has
         never reviewed, but at least one other non-bot user has
@@ -1007,7 +1011,8 @@ class ReportToDoListOthers(ReportToDoList):
                                                    branches=branches,
                                                    files=files,
                                                    topics=topics,
-                                                   usecolor=usecolor)
+                                                   usecolor=usecolor,
+                                                   deps=deps)
         self.bots = bots
 
     def filter(self, change):
@@ -1023,7 +1028,7 @@ class ReportToDoListOthers(ReportToDoList):
 class ReportToDoListAnyones(ReportToDoList):
 
     def __init__(self, client, username, bots=[], projects=[],
-                 branches=[], files=[], topics=[], usecolor=False):
+                 branches=[], files=[], topics=[], usecolor=False, deps=False):
         '''
         Report to provide a list of changes where at least
         one other non-bot user has provided review
@@ -1033,7 +1038,8 @@ class ReportToDoListAnyones(ReportToDoList):
                                                     branches=branches,
                                                     files=files,
                                                     topics=topics,
-                                                    usecolor=usecolor)
+                                                    usecolor=usecolor,
+                                                    deps=deps)
         self.bots = bots
         self.username = username
 
@@ -1048,7 +1054,7 @@ class ReportToDoListAnyones(ReportToDoList):
 class ReportToDoListNoones(ReportToDoList):
 
     def __init__(self, client, bots=[], projects=[],
-                 branches=[], files=[], topics=[], usecolor=False):
+                 branches=[], files=[], topics=[], usecolor=False, deps=False):
         '''
         Report to provide a list of changes that no one
         has ever reviewed
@@ -1058,7 +1064,8 @@ class ReportToDoListNoones(ReportToDoList):
                                                    branches=branches,
                                                    files=files,
                                                    topics=topics,
-                                                   usecolor=usecolor)
+                                                   usecolor=usecolor,
+                                                   deps=deps)
         self.bots = bots
 
     def filter(self, change):
@@ -1070,7 +1077,7 @@ class ReportToDoListNoones(ReportToDoList):
 class ReportToDoListApprovable(ReportToDoList):
 
     def __init__(self, client, username, strict, projects=[],
-                 branches=[], files=[], topics=[], usecolor=False):
+                 branches=[], files=[], topics=[], usecolor=False, deps=False):
         '''
         Report to provide a list of changes that no one
         has ever reviewed
@@ -1080,7 +1087,8 @@ class ReportToDoListApprovable(ReportToDoList):
                                                        branches=branches,
                                                        files=files,
                                                        topics=topics,
-                                                       usecolor=usecolor)
+                                                       usecolor=usecolor,
+                                                       deps=deps)
         self.username = username
         self.strict = strict
 
@@ -1103,7 +1111,7 @@ class ReportToDoListApprovable(ReportToDoList):
 class ReportToDoListExpirable(ReportToDoList):
 
     def __init__(self, client, age=28, projects=[],
-                 branches=[], files=[], topics=[], usecolor=False):
+                 branches=[], files=[], topics=[], usecolor=False, deps=False):
         '''
         Report to provide a list of changes that are
         stale and can potentially be expired
@@ -1113,7 +1121,8 @@ class ReportToDoListExpirable(ReportToDoList):
                                                       branches=branches,
                                                       files=files,
                                                       topics=topics,
-                                                      usecolor=usecolor)
+                                                      usecolor=usecolor,
+                                                      deps=deps)
         self.age = age
 
     def filter(self, change):

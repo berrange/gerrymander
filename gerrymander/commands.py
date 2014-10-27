@@ -647,6 +647,9 @@ class CommandChanges(CommandProject, CommandCaching, CommandReportTable):
                         "--rawquery", default=None,
                         help="Raw query string to pass through to gerrit")
         self.add_option(parser, config,
+                        "--deps", action="store_true", default=False,
+                        help="Sort output by change dependencies")
+        self.add_option(parser, config,
                         "file", default=[], nargs="*",
                         help="File name matches")
         self.sort_option.choices = [c.key for c in ReportChanges.COLUMNS]
@@ -663,7 +666,8 @@ class CommandChanges(CommandProject, CommandCaching, CommandReportTable):
                              approvals=options.approval,
                              rawquery=options.rawquery,
                              files=options.file,
-                             usecolor=options.color)
+                             usecolor=options.color,
+                             deps=options.deps)
 
 
 class CommandToDo(CommandProject, CommandCaching, CommandReportTable):
@@ -679,6 +683,9 @@ class CommandToDo(CommandProject, CommandCaching, CommandReportTable):
         self.add_option(parser, config,
                         "--topic", action="append", default=[],
                         help="Filter based on topic")
+        self.add_option(parser, config,
+                        "--deps", action="store_true", default=False,
+                        help="Sort output by change dependencies")
         self.add_option(parser, config,
                         "file", default=[], nargs="*",
                         help="File name matches")
@@ -699,7 +706,8 @@ class CommandToDoMine(CommandToDo):
                                   branches=options.branch,
                                   files=options.file,
                                   topics=options.topic,
-                                  usecolor=options.color)
+                                  usecolor=options.color,
+                                  deps=options.deps)
 
 
 class CommandToDoOthers(CommandToDo):
@@ -718,7 +726,8 @@ class CommandToDoOthers(CommandToDo):
                                     branches=options.branch,
                                     files=options.file,
                                     topics=options.topic,
-                                    usecolor=options.color)
+                                    usecolor=options.color,
+                                    deps=options.deps)
 
 
 class CommandToDoAnyones(CommandToDo):
@@ -738,7 +747,8 @@ class CommandToDoAnyones(CommandToDo):
                                      branches=options.branch,
                                      files=options.file,
                                      topics=options.topic,
-                                     usecolor=options.color)
+                                     usecolor=options.color,
+                                     deps=options.deps)
 
 
 class CommandToDoNoones(CommandToDo):
@@ -753,7 +763,8 @@ class CommandToDoNoones(CommandToDo):
                                     branches=options.branch,
                                     files=options.file,
                                     topics=options.topic,
-                                    usecolor=options.color)
+                                    usecolor=options.color,
+                                    deps=options.deps)
 
 
 class CommandToDoApprovable(CommandToDo):
@@ -780,7 +791,8 @@ class CommandToDoApprovable(CommandToDo):
                                         branches=options.branch,
                                         files=options.file,
                                         topics=options.topic,
-                                        usecolor=options.color)
+                                        usecolor=options.color,
+                                        deps=options.deps)
 
 
 class CommandToDoExpirable(CommandToDo):
@@ -802,7 +814,8 @@ class CommandToDoExpirable(CommandToDo):
                                        branches=options.branch,
                                        files=options.file,
                                        topics=options.topic,
-                                       usecolor=options.color)
+                                       usecolor=options.color,
+                                       deps=options.deps)
 
 
 class CommandComments(CommandCaching):
