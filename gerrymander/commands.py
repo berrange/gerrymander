@@ -685,13 +685,13 @@ class CommandChanges(CommandProject, CommandCaching, CommandReportTable):
                              files=options.file,
                              usecolor=options.color)
 
-class CommandToDoMine(CommandProject, CommandCaching, CommandReportTable):
 
-    def __init__(self, name="todo-mine", help="List of changes I've looked at before"):
-        super(CommandToDoMine, self).__init__(name, help)
+class CommandToDo(CommandProject, CommandCaching, CommandReportTable):
+    def __init__(self, name, help):
+        super(CommandToDo, self).__init__(name, help)
 
     def add_options(self, parser, config):
-        super(CommandToDoMine, self).add_options(parser, config)
+        super(CommandToDo, self).add_options(parser, config)
 
         self.add_option(parser, config,
                         "--branch", action="append", default=[],
@@ -702,6 +702,11 @@ class CommandToDoMine(CommandProject, CommandCaching, CommandReportTable):
         self.add_option(parser, config,
                         "file", default=[], nargs="*",
                         help="File name matches")
+
+class CommandToDoMine(CommandToDo):
+
+    def __init__(self, name="todo-mine", help="List of changes I've looked at before"):
+        super(CommandToDoMine, self).__init__(name, help)
 
     def get_report(self, config, client, options):
         username = config.get_server_username()
@@ -717,23 +722,10 @@ class CommandToDoMine(CommandProject, CommandCaching, CommandReportTable):
                                   usecolor=options.color)
 
 
-class CommandToDoOthers(CommandProject, CommandCaching, CommandReportTable):
+class CommandToDoOthers(CommandToDo):
 
     def __init__(self, name="todo-others", help="List of changes I've not looked at before"):
         super(CommandToDoOthers, self).__init__(name, help)
-
-    def add_options(self, parser, config):
-        super(CommandToDoOthers, self).add_options(parser, config)
-
-        self.add_option(parser, config,
-                        "--branch", action="append", default=[],
-                        help="Filter based on branch")
-        self.add_option(parser, config,
-                        "--topic", action="append", default=[],
-                        help="Filter based on branch")
-        self.add_option(parser, config,
-                        "file", default=[], nargs="*",
-                        help="File name matches")
 
     def get_report(self, config, client, options):
         username = config.get_server_username()
@@ -749,23 +741,10 @@ class CommandToDoOthers(CommandProject, CommandCaching, CommandReportTable):
                                     usecolor=options.color)
 
 
-class CommandToDoAnyones(CommandProject, CommandCaching, CommandReportTable):
+class CommandToDoAnyones(CommandToDo):
 
     def __init__(self, name="todo-anyones", help="List of changes anyone has looked at"):
         super(CommandToDoAnyones, self).__init__(name, help)
-
-    def add_options(self, parser, config):
-        super(CommandToDoAnyones, self).add_options(parser, config)
-
-        self.add_option(parser, config,
-                        "--branch", action="append", default=[],
-                        help="Filter based on branch")
-        self.add_option(parser, config,
-                        "--topic", action="append", default=[],
-                        help="Filter based on topic")
-        self.add_option(parser, config,
-                        "file", default=[], nargs="*",
-                        help="File name matches")
 
     def get_report(self, config, client, options):
         username = config.get_server_username()
@@ -782,23 +761,10 @@ class CommandToDoAnyones(CommandProject, CommandCaching, CommandReportTable):
                                      usecolor=options.color)
 
 
-class CommandToDoNoones(CommandProject, CommandCaching, CommandReportTable):
+class CommandToDoNoones(CommandToDo):
 
     def __init__(self, name="todo-noones", help="List of changes no one has looked at yet"):
         super(CommandToDoNoones, self).__init__(name, help)
-
-    def add_options(self, parser, config):
-        super(CommandToDoNoones, self).add_options(parser, config)
-
-        self.add_option(parser, config,
-                        "--branch", action="append", default=[],
-                        help="Filter based on branch")
-        self.add_option(parser, config,
-                        "--topic", action="append", default=[],
-                        help="Filter based on topic")
-        self.add_option(parser, config,
-                        "file", default=[], nargs="*",
-                        help="File name matches")
 
     def get_report(self, config, client, options):
         return ReportToDoListNoones(client,
@@ -810,7 +776,7 @@ class CommandToDoNoones(CommandProject, CommandCaching, CommandReportTable):
                                     usecolor=options.color)
 
 
-class CommandToDoApprovable(CommandProject, CommandCaching, CommandReportTable):
+class CommandToDoApprovable(CommandToDo):
 
     def __init__(self, name="todo-approvable", help="List of changes that I can approve"):
         super(CommandToDoApprovable, self).__init__(name, help)
@@ -819,17 +785,8 @@ class CommandToDoApprovable(CommandProject, CommandCaching, CommandReportTable):
         super(CommandToDoApprovable, self).add_options(parser, config)
 
         self.add_option(parser, config,
-                        "--branch", action="append", default=[],
-                        help="Filter based on branch")
-        self.add_option(parser, config,
-                        "--topic", action="append", default=[],
-                        help="Filter based on topic")
-        self.add_option(parser, config,
                         "--strict", action="store_true", default=False,
                         help="Exclude changes with any negative code reviews")
-        self.add_option(parser, config,
-                        "file", default=[], nargs="*",
-                        help="File name matches")
 
     def get_report(self, config, client, options):
         username = config.get_server_username()
@@ -846,7 +803,7 @@ class CommandToDoApprovable(CommandProject, CommandCaching, CommandReportTable):
                                         usecolor=options.color)
 
 
-class CommandToDoExpirable(CommandProject, CommandCaching, CommandReportTable):
+class CommandToDoExpirable(CommandToDo):
 
     def __init__(self, name="todo-expirable", help="List of stale changes that can be expired"):
         super(CommandToDoExpirable, self).__init__(name, help)
@@ -855,17 +812,8 @@ class CommandToDoExpirable(CommandProject, CommandCaching, CommandReportTable):
         super(CommandToDoExpirable, self).add_options(parser, config)
 
         self.add_option(parser, config,
-                        "--branch", action="append", default=[],
-                        help="Filter based on branch")
-        self.add_option(parser, config,
-                        "--topic", action="append", default=[],
-                        help="Filter based on topic")
-        self.add_option(parser, config,
                         "--age", default="28",
                         help="Set age cutoff in days")
-        self.add_option(parser, config,
-                        "file", default=[], nargs="*",
-                        help="File name matches")
 
     def get_report(self, config, client, options):
         return ReportToDoListExpirable(client,
