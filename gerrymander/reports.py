@@ -868,10 +868,9 @@ class ReportChanges(ReportBaseChange):
             if len(self.files) == 0:
                 return True
             for filere in self.files:
-                for patch in change.patches:
-                    for file in patch.files:
-                        if re.search(filere, file.path):
-                            return True
+                for file in change.get_current_patch().files:
+                    if re.search(filere, file.path):
+                        return True
             return False
 
         table = self.new_table("Changes")
