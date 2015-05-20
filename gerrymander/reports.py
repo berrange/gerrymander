@@ -56,7 +56,10 @@ class ReportOutputColumn(object):
             val = ""
 
         if type(val) != str:
-            val = val.encode('utf-8')
+            try:
+                val = val.encode('utf-8')
+            except AttributeError:
+                val = str(val)
 
         if self.truncate and len(val) > self.truncate:
             val = val[0:self.truncate] + "..."
