@@ -51,7 +51,7 @@ class OperationQuery(OperationBase):
             if self.files:
                 raise Exception("files cannot be requested without patches")
 
-    def get_args(self, limit=None, sortkey=None):
+    def get_args(self, limit=None, offset=None, sortkey=None):
         args = ["query", "--format=JSON"]
         if self.patches == OperationQuery.PATCHES_CURRENT:
             args.append("--current-patch-set")
@@ -66,6 +66,10 @@ class OperationQuery(OperationBase):
             args.append("--comments")
 
         clauses = []
+        if offset is not None:
+            args.append("--start")
+            args.append("%d" % offset)
+
         if limit is not None:
             clauses.append("limit:" + str(limit))
         if sortkey is not None:
@@ -103,15 +107,21 @@ class OperationQuery(OperationBase):
                 self.gotany = True
                 self.count = 0
                 self.sortkey = None
+                self.has_more = False
 
         c = tracker()
         def mycb(line):
             if 'rowCount' in line:
+                # New gerrit sets 'moreChanges'
+                if 'moreChanges' in line:
+                    c.has_more = line['moreChanges']
                 return
+
             if 'type' in line and line['type'] == "error":
                 raise Exception(line['message'])
 
             change = ModelChange.from_json(line)
+            # Old gerrit sets 'sortKey'
             if "sortKey" in line:
                 c.sortkey = line["sortKey"]
             c.gotany = True
@@ -121,8 +131,11 @@ class OperationQuery(OperationBase):
         if limit is None:
             while c.gotany:
                 c.gotany = False
-                self.client.run(self.get_args(500, c.sortkey), mycb)
-                if not c.sortkey:
+                offset = None
+                if c.has_more:
+                    offset = c.count
+                self.client.run(self.get_args(500, offset, c.sortkey), mycb)
+                if not c.sortkey and not c.has_more:
                     break
         else:
             while c.count < limit and c.gotany:
@@ -130,8 +143,11 @@ class OperationQuery(OperationBase):
                 if want > 500:
                     want = 500
                 c.gotany = False
-                self.client.run(self.get_args(want, c.sortkey), mycb)
-                if not c.sortkey:
+                offset = None
+                if c.has_more:
+                    offset = c.count
+                self.client.run(self.get_args(want, offset, c.sortkey), mycb)
+                if not c.sortkey and not c.has_more:
                     break
         return 0
 
