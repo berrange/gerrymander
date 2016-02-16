@@ -36,6 +36,7 @@ from gerrymander.model import ModelEventChangeAbandon
 from gerrymander.model import ModelEventChangeRestore
 from gerrymander.model import ModelApproval
 from gerrymander.pager import start_pager, stop_pager
+from gerrymander.git import get_remote_info
 
 import getpass
 import os
@@ -55,6 +56,25 @@ class CommandConfig(object):
         self.filename = os.path.expanduser(filename)
         self.config = configparser.ConfigParser()
         self.config.read([self.filename])
+
+        if self.has_option('server', 'remote'):
+            self.set_gerrit_from_remote()
+
+    def set_gerrit_from_remote(self):
+        remote = self.get_option_string('server', 'remote')
+        if not remote:
+            return
+
+        user, host, port = get_remote_info(remote)
+
+        if host:
+            self.config.set('server', 'hostname', host)
+
+        if user:
+            self.config.set('server', 'username', user)
+
+        if port:
+            self.config.set('server', 'port', port)
 
     def has_option(self, section, name):
         return self.config.has_option(section, name)
