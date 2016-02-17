@@ -126,12 +126,12 @@ class CommandConfig(object):
     def get_cache_longlifetime(self):
         if not self.config.has_option("cache", "longlifetime"):
             return 86400
-        return self.config.get("cache", "lifetime")
+        return int(self.config.get("cache", "longlifetime"))
 
     def get_cache_shortlifetime(self):
         if not self.config.has_option("cache", "shortlifetime"):
             return 300
-        return self.config.get("cache", "shortlifetime")
+        return int(self.config.get("cache", "shortlifetime"))
 
     def get_cache_directory(self):
         if not self.config.has_option("cache", "directory"):
