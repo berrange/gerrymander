@@ -32,6 +32,10 @@ from gerrymander.format import format_color
 
 LOG = logging.getLogger(__name__)
 
+
+TreeNode = collections.namedtuple('TreeNode', ['data', 'children'])
+
+
 class ReportOutputColumn(object):
 
     ALIGN_LEFT = "l"
@@ -227,22 +231,40 @@ class ReportOutputTable(ReportOutput):
     def add_column(self, col):
         self.columns.append(col)
 
-    def add_row(self, row):
-        self.rows.append(row)
+    def add_row(self, data, parent=None):
+        node = TreeNode(data, [])
 
-    def sort_rows(self):
+        if parent is None:
+            self.rows.append(node)
+        else:
+            parent.children.append(node)
+        return node
+
+    def iter_rowlist(self, init_rowlist, output_row, init_data, gen_child_data):
         sortcol = None
         for col in self.columns:
             if col.key == self.sortcol:
                 sortcol = col
 
-        if sortcol is not None:
-            self.rows.sort(key = lambda item: sortcol.get_sort_value(self, item),
-                           reverse=self.reverse)
+        total_written = [0]
+        def _iter_rowlist(rowlist, data):
+            if sortcol is not None:
+                rowlist.sort(key = lambda item: sortcol.get_sort_value(
+                                 self, item.data),
+                             reverse=self.reverse)
+
+            for row in rowlist:
+                if self.limit is not None and total_written[0] == self.limit:
+                    return
+                total_written[0] += 1
+
+                rowdata = output_row(row.data, data)
+
+                if len(row.children) > 0:
+                    _iter_rowlist(row.children, gen_child_data(rowdata))
+        _iter_rowlist(init_rowlist, init_data)
 
     def to_xml(self, doc, root):
-        self.sort_rows()
-
         table = doc.createElement("table")
         root.appendChild(table)
         if self.title is not None:
@@ -254,44 +276,53 @@ class ReportOutputTable(ReportOutput):
         table.appendChild(headers)
         table.appendChild(content)
 
-        for col in self.columns:
-            if col.visible:
-                xmlcol = doc.createElement(col.key)
-                xmlcol.appendChild(doc.createTextNode(col.label))
-                headers.appendChild(xmlcol)
+        visible_cols = filter(lambda col: col.visible, self.columns)
+        for col in visible_cols:
+            xmlcol = doc.createElement(col.key)
+            xmlcol.appendChild(doc.createTextNode(col.label))
+            headers.appendChild(xmlcol)
 
-        rows = self.rows
-        if self.limit is not None:
-            rows = rows[0:self.limit]
-        for row in rows:
+        def output_xml(row_data, parent):
             xmlrow = doc.createElement("row")
-            for col in self.columns:
-                if col.visible:
-                    xmlfield = doc.createElement(col.key)
-                    xmlfield.appendChild(doc.createTextNode(col.get_value(self, row)))
-                    xmlrow.appendChild(xmlfield)
-            content.appendChild(xmlrow)
+            for col in visible_cols:
+                xmlfield = doc.createElement(col.key)
+                xmlfield.appendChild(
+                    doc.createTextNode(col.get_value(self, row_data)))
+                xmlrow.appendChild(xmlfield)
+            parent.appendChild(xmlrow)
+            return xmlrow
+
+        def gen_children(parent):
+            children = doc.createElement("children")
+            parent.appendChild(children)
+            return children
+
+        self.iter_rowlist(self.rows, output_xml, content, gen_children)
 
         return doc
 
     def to_json(self, root):
-        self.sort_rows()
+        visible_cols = filter(lambda col: col.visible, self.columns)
 
         headers = {}
-        for col in self.columns:
-            if col.visible:
-                headers[col.key] = col.label
+        for col in visible_cols:
+            headers[col.key] = col.label
 
         content = []
-        rows = self.rows
-        if self.limit is not None:
-            rows = rows[0:self.limit]
-        for row in rows:
+
+        def output_json(row_data, parent):
             data = {}
-            for col in self.columns:
-                if col.visible:
-                    data[col.key] = col.get_value(self, row)
-            content.append(data)
+            for col in visible_cols:
+                data[col.key] = col.get_value(self, row_data)
+            parent.append(data)
+            return data
+
+        def gen_children(parent):
+            children = []
+            parent['children'] = children
+            return children
+
+        self.iter_rowlist(self.rows, output_json, content, gen_children)
 
         node = {
             "table": {
@@ -304,27 +335,28 @@ class ReportOutputTable(ReportOutput):
         root.append(node)
 
     def to_text(self):
-        self.sort_rows()
-
         labels = []
-        for col in self.columns:
-            if col.visible:
-                labels.append(col.label)
+        visible_cols = filter(lambda col: col.visible, self.columns)
+        for col in visible_cols:
+            labels.append(col.label)
         table = prettytable.PrettyTable(labels)
-        for col in self.columns:
+        for col in visible_cols:
             table.align[col.label] = col.align
 
         table.padding_width = 1
+        indent = 2
 
-        rows = self.rows
-        if self.limit is not None:
-            rows = rows[0:self.limit]
-        for row in rows:
-            data = []
-            for col in self.columns:
-                if col.visible:
-                    data.append(col.get_value(self, row))
-            table.add_row(data)
+        def output_text(row_data, depth):
+            fields = map(lambda col: col.get_value(self, row_data),
+                         visible_cols)
+            fields[0] = ' ' * indent * depth + fields[0]
+            table.add_row(fields)
+            return depth
+
+        def inc_depth(depth):
+            return depth + 1
+
+        self.iter_rowlist(self.rows, output_text, 0, inc_depth)
 
         prolog = ""
         if self.title is not None:
@@ -332,29 +364,25 @@ class ReportOutputTable(ReportOutput):
         return prolog + str(table) + "\n"
 
     def to_csv(self):
-        self.sort_rows()
-
-        labels = []
-        for col in self.columns:
-            if col.visible:
-                labels.append(col.label)
+        visible_cols = filter(lambda col: col.visible, self.columns)
 
         lines = []
 
         if self.title is not None:
             lines.append(self.title)
 
+        labels = []
+        for col in visible_cols:
+            labels.append(col.label)
         lines.append(",".join(labels))
 
-        rows = self.rows
-        if self.limit is not None:
-            rows = rows[0:self.limit]
-        for row in rows:
-            data = []
-            for col in self.columns:
-                if col.visible:
-                    data.append(col.get_value(self, row))
+        # CSV data is flat
+        def output_csv(row_data, dummy):
+            data = map(lambda col: col.get_value(self, row_data), visible_cols)
             lines.append(",".join(data))
+            return dummy
+
+        self.iter_rowlist(self.rows, output_csv, None, lambda x: None)
 
         return "\n".join(lines)
 
@@ -830,42 +858,30 @@ class ReportBaseChange(ReportTable):
         self.usecolor = usecolor
 
 
-class ReportChanges(ReportBaseChange):
+class ReportChangeList(ReportBaseChange):
 
-    def __init__(self, client, projects=[], owners=[],
-                 status=[], messages=[], branches=[], topics=[], reviewers=[],
-                 approvals=[], files=[], rawquery=None, usecolor=False):
-        super(ReportChanges, self).__init__(client, usecolor)
-        self.projects = projects
-        self.owners = owners
-        self.status = status
-        self.messages = messages
-        self.branches = branches
-        self.topics = topics
-        self.reviewers = reviewers
-        self.approvals = approvals
-        self.files = files
+    def __init__(self, client, usecolor, title,
+                 query_terms, patches, files=None, rawquery=None,
+                 deps=False):
+        super(ReportChangeList, self).__init__(client, usecolor)
+        self.title = title
+        self.query_terms = query_terms
+        self.patches = patches
         self.rawquery = rawquery
+        self.files = files
+        self.deps = deps
+
+    def filter(self, change):
+        return True
 
     def generate(self):
-        needFiles = False
-        if len(self.files) > 0:
-            needFiles = True
-
         query = OperationQuery(self.client,
-                               {
-                                   "project": self.projects,
-                                   "owner": self.owners,
-                                   "message": self.messages,
-                                   "branch": self.branches,
-                                   "topic": self.topics,
-                                   "status": self.status,
-                                   "reviewer": self.reviewers,
-                               },
+                               self.query_terms,
                                rawquery=self.rawquery,
-                               patches=OperationQuery.PATCHES_CURRENT,
+                               patches=self.patches,
                                approvals=True,
-                               files=needFiles)
+                               files=(self.files is not None),
+                               deps=self.deps)
 
         def match_files(change):
             if len(self.files) == 0:
@@ -876,74 +892,91 @@ class ReportChanges(ReportBaseChange):
                         return True
             return False
 
-        table = self.new_table("Changes")
-        def querycb(change):
-            if match_files(change):
-                table.add_row(change)
+        table = self.new_table(self.title)
 
-        query.run(querycb)
+        if not self.deps:
+            def querycb(change):
+                if self.filter(change) and match_files(change):
+                    table.add_row(change)
+            query.run(querycb)
+        else:
+            # Index all changes by change id
+            nodes = {}
+            def querycb(change):
+                if self.filter(change) and match_files(change):
+                    nodes[change.id] = TreeNode(change, [])
+            query.run(querycb)
+
+            # Create a hierarchy of changes by dependency
+            root = []
+            for node in nodes.values():
+                change = node.data
+                parent = nodes.get(change.depends)
+
+                # Check if we've seen this change's parent
+                if parent is None:
+                    # If not, add it to the root list
+                    root.append(node)
+                else:
+                    # Add it as a child
+                    parent.children.append(node)
+
+            # Add changes recursively to output table
+            def add_nodes(change_nodes, parent=None):
+                for change_node in change_nodes:
+                    row_node = table.add_row(change_node.data, parent)
+                    add_nodes(change_node.children, row_node)
+            add_nodes(root)
 
         return table
 
 
-class ReportToDoList(ReportBaseChange):
+class ReportChanges(ReportChangeList):
+
+    def __init__(self, client, projects=[], owners=[],
+                 status=[], messages=[], branches=[], topics=[], reviewers=[],
+                 approvals=[], files=[], rawquery=None, usecolor=False,
+                 deps=False):
+        self.approvals = approvals
+
+        query_terms = {
+            "project": projects,
+            "owner": owners,
+            "message": messages,
+            "branch": branches,
+            "topic": topics,
+            "status": status,
+            "reviewer": reviewers,
+        }
+        super(ReportChanges, self).__init__(client, usecolor, "Changes",
+                                            query_terms,
+                                            OperationQuery.PATCHES_CURRENT,
+                                            files=files,
+                                            rawquery=rawquery, deps=deps)
+
+
+class ReportToDoList(ReportChangeList):
 
     def __init__(self, client, projects=[], branches=[],
-                 files=[], topics=[], reviewers=[], usecolor=False):
-        super(ReportToDoList, self).__init__(client, usecolor)
-
-        self.projects = projects
-        self.branches = branches
-        self.reviewers = reviewers
-        self.files = files
-        self.topics = topics
-
-    def filter(self, change):
-        return True
-
-    def generate(self):
-        needFiles = False
-        if len(self.files) > 0:
-            needFiles = True
-
-        query = OperationQuery(self.client,
-                               {
-                                   "project": self.projects,
-                                   "status": [ OperationQuery.STATUS_OPEN ],
-                                   "branch": self.branches,
-                                   "topic": self.topics,
-                                   "reviewer": self.reviewers,
-                               },
-                               patches=OperationQuery.PATCHES_ALL,
-                               approvals=True,
-                               files=needFiles)
-
-        def match_files(change):
-            if len(self.files) == 0:
-                return True
-            for filere in self.files:
-                for patch in change.patches:
-                    for file in patch.files:
-                        if re.search(filere, file.path):
-                            return True
-            return False
-
-        table = self.new_table("Changes To Do List")
-        def querycb(change):
-            if self.filter(change) and match_files(change):
-                table.add_row(change)
-
-        query.run(querycb)
-
-        return table
-
-
+                 files=[], topics=[], reviewers=[], usecolor=False, deps=False):
+        query_terms = {
+            "project": projects,
+            "status": [ OperationQuery.STATUS_OPEN ],
+            "branch": branches,
+            "topic": topics,
+            "reviewer": reviewers,
+        }
+        super(ReportToDoList, self).__init__(client, usecolor,
+                                             "Changes To Do List",
+                                             query_terms,
+                                             OperationQuery.PATCHES_ALL,
+                                             files, deps=deps)
 
 
 class ReportToDoListMine(ReportToDoList):
 
     def __init__(self, client, username, projects=[],
-                 branches=[], files=[], topics=[], usecolor=False):
+                 branches=[], files=[], topics=[], usecolor=False, deps=False):
         '''
         Report to provide a list of changes 'username' has
         reviewed an older version of the patch, and needs
@@ -955,7 +988,8 @@ class ReportToDoListMine(ReportToDoList):
                                                  branches=branches,
                                                  files=files,
                                                  topics=topics,
-                                                 usecolor=usecolor)
+                                                 usecolor=usecolor,
+                                                 deps=deps)
         self.username = username
 
     def filter(self, change):
@@ -968,7 +1002,7 @@ class ReportToDoListMine(ReportToDoList):
 
 class ReportToDoListOthers(ReportToDoList):
     def __init__(self, client, username, bots=[], projects=[],
-                 branches=[], files=[], topics=[], usecolor=False):
+                 branches=[], files=[], topics=[], usecolor=False, deps=False):
         '''
         Report to provide a list of changes where 'username' has
         never reviewed, but at least one other non-bot user has
@@ -980,7 +1014,8 @@ class ReportToDoListOthers(ReportToDoList):
                                                    branches=branches,
                                                    files=files,
                                                    topics=topics,
-                                                   usecolor=usecolor)
+                                                   usecolor=usecolor,
+                                                   deps=deps)
         self.bots = bots
 
     def filter(self, change):
@@ -998,7 +1033,7 @@ class ReportToDoListOthers(ReportToDoList):
 class ReportToDoListAnyones(ReportToDoList):
 
     def __init__(self, client, username, bots=[], projects=[],
-                 branches=[], files=[], topics=[], usecolor=False):
+                 branches=[], files=[], topics=[], usecolor=False, deps=False):
         '''
         Report to provide a list of changes where at least
         one other non-bot user has provided review
@@ -1008,7 +1043,8 @@ class ReportToDoListAnyones(ReportToDoList):
                                                     branches=branches,
                                                     files=files,
                                                     topics=topics,
-                                                    usecolor=usecolor)
+                                                    usecolor=usecolor,
+                                                    deps=deps)
         self.bots = bots
         self.username = username
 
@@ -1025,7 +1061,7 @@ class ReportToDoListAnyones(ReportToDoList):
 class ReportToDoListNoones(ReportToDoList):
 
     def __init__(self, client, bots=[], projects=[],
-                 branches=[], files=[], topics=[], usecolor=False):
+                 branches=[], files=[], topics=[], usecolor=False, deps=False):
         '''
         Report to provide a list of changes that no one
         has ever reviewed
@@ -1035,7 +1071,8 @@ class ReportToDoListNoones(ReportToDoList):
                                                    branches=branches,
                                                    files=files,
                                                    topics=topics,
-                                                   usecolor=usecolor)
+                                                   usecolor=usecolor,
+                                                   deps=deps)
         self.bots = bots
 
     def filter(self, change):
@@ -1049,7 +1086,7 @@ class ReportToDoListNoones(ReportToDoList):
 class ReportToDoListApprovable(ReportToDoList):
 
     def __init__(self, client, username, strict, projects=[],
-                 branches=[], files=[], topics=[], usecolor=False):
+                 branches=[], files=[], topics=[], usecolor=False, deps=False):
         '''
         Report to provide a list of changes that no one
         has ever reviewed
@@ -1059,7 +1096,8 @@ class ReportToDoListApprovable(ReportToDoList):
                                                        branches=branches,
                                                        files=files,
                                                        topics=topics,
-                                                       usecolor=usecolor)
+                                                       usecolor=usecolor,
+                                                       deps=deps)
         self.username = username
         self.strict = strict
 
@@ -1083,7 +1121,7 @@ class ReportToDoListApprovable(ReportToDoList):
 class ReportToDoListExpirable(ReportToDoList):
 
     def __init__(self, client, age=28, projects=[],
-                 branches=[], files=[], topics=[], usecolor=False):
+                 branches=[], files=[], topics=[], usecolor=False, deps=False):
         '''
         Report to provide a list of changes that are
         stale and can potentially be expired
@@ -1093,7 +1131,8 @@ class ReportToDoListExpirable(ReportToDoList):
                                                       branches=branches,
                                                       files=files,
                                                       topics=topics,
-                                                      usecolor=usecolor)
+                                                      usecolor=usecolor,
+                                                      deps=deps)
         self.age = age
 
     def filter(self, change):
