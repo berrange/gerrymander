@@ -959,8 +959,9 @@ class ReportToDoListMine(ReportToDoList):
         self.username = username
 
     def filter(self, change):
-        if (not change.has_current_reviewers([self.username]) and
-            not change.has_owner([self.username])):
+        if change.has_owner([self.username]):
+            return False
+        if not change.has_current_reviewers([self.username]):
             return True
         return False
 
@@ -987,6 +988,8 @@ class ReportToDoListOthers(ReportToDoList):
         # not reviewed any version of the patch. We want to
         # filter out changes which only have bots, or have
         # no reviewers at all.
+        if change.has_owner([self.username]):
+            return False
         if change.has_any_other_reviewers(self.bots):
             return True
         return False
@@ -1010,6 +1013,8 @@ class ReportToDoListAnyones(ReportToDoList):
         self.username = username
 
     def filter(self, change):
+        if change.has_owner([self.username]):
+            return False
         if change.has_current_reviewers([self.username]):
             return False
         if change.has_any_other_reviewers(self.bots):
@@ -1034,6 +1039,8 @@ class ReportToDoListNoones(ReportToDoList):
         self.bots = bots
 
     def filter(self, change):
+        if change.has_owner([self.username]):
+            return False
         if not change.has_any_other_reviewers(self.bots):
             return True
         return False
@@ -1057,8 +1064,9 @@ class ReportToDoListApprovable(ReportToDoList):
         self.strict = strict
 
     def filter(self, change):
+        if change.has_owner([self.username]):
+            return False
         if (change.has_current_approval(ModelApproval.ACTION_REVIEWED, 2) and
-            not change.has_owner([self.username]) and
             not change.has_current_approval(ModelApproval.ACTION_WORKFLOW, -1) and
             not change.has_current_approval(ModelApproval.ACTION_WORKFLOW, 1) and
             not change.has_current_approval(ModelApproval.ACTION_REVIEWED, -2) and
