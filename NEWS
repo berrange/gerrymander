@@ -1,6 +1,20 @@
        Gerrymander News
        ================
 
+Release 1.5 - "Some beans and some beans is four!" - 2016-02-22
+---------------------------------------------------------------
+
+ * Honour the 'files' parameter in the 'todo-noones' command
+ * Only match filenames against current patchset
+ * Handle pagination with gerrit >= 2.9
+ * Avoid looping forever if sort key is missing in results
+ * Don't call encode() on integer types
+ * Auto-detect gerrit server from git remote
+ * Don't include your own changes in todo lists
+ * Fix type casting of cache lifetime values in config file
+ * Optionally show hierarchical relationship between changes
+   via new '--deps' option
+
 Release 1.4 - "On no account mention the word Macbeth" - 2014-09-03
 -------------------------------------------------------------------
 
