@@ -1017,6 +1017,7 @@ class ReportToDoListOthers(ReportToDoList):
                                                    usecolor=usecolor,
                                                    deps=deps)
         self.bots = bots
+        self.username = username
 
     def filter(self, change):
         # allchanges contains changes where 'username' has
@@ -1060,7 +1061,7 @@ class ReportToDoListAnyones(ReportToDoList):
 
 class ReportToDoListNoones(ReportToDoList):
 
-    def __init__(self, client, bots=[], projects=[],
+    def __init__(self, client, username, bots=[], projects=[],
                  branches=[], files=[], topics=[], usecolor=False, deps=False):
         '''
         Report to provide a list of changes that no one
@@ -1074,6 +1075,7 @@ class ReportToDoListNoones(ReportToDoList):
                                                    usecolor=usecolor,
                                                    deps=deps)
         self.bots = bots
+        self.username = username
 
     def filter(self, change):
         if change.has_owner([self.username]):
