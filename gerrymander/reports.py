@@ -548,7 +548,7 @@ class ReportPatchReviewStats(ReportTable):
         summary = ReportOutputList([
             ReportOutputColumn("nreviews", "Total reviews", format="%d",
                                mapfunc=lambda rep, col, row: row[0]),
-            ReportOutputColumn("nreviewers", "Total rviewers", format="%d",
+            ReportOutputColumn("nreviewers", "Total reviewers", format="%d",
                                mapfunc=lambda rep, col, row: row[1])
         ], title="Review summary")
         summary.set_row([len(reviews), len(reviewers.keys())])
